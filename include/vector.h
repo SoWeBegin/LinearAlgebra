@@ -1,14 +1,16 @@
-#ifndef MATH_VECTOR_MINILIBRARY
-#define MATH_VECTOR_MINILIBRARY
+#ifndef VECTOR_MATH_MINILIBRARY
+#define VECTOR_MATH_MINILIBRARY
 
-
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cassert>
 #include <concepts>
+#include <initializer_list> 
 #include <iterator>
 #include <numeric>
+#include <numbers>
 #include <optional>
 #include <random>
 #include <type_traits>
@@ -17,9 +19,19 @@
 
 // Todo: remove friend functions from vector and move them in namespace Math::
 
-namespace Math {
+#define ASSERT_SIZE_MISMATCH(Size, Size2) assert((Size2 >= Size and "Size mismatch!"));
 
-	enum class Cos { ALPHA = 0, BETA, THETA };
+#define ASSERT_DIV_BYZERO(Value) assert((Value != T{} and "Cannot perform division by zero!"));
+
+#define STATICASSERT_COMPLEX_DIFFTYPES(Type1, Type2)\
+if constexpr (is_complex<T>::value)\
+static_assert(std::same_as<Type1, Type2>);\
+
+
+
+namespace MathLbr {
+
+	enum class Cos { X_AXIS = 0, Y_AXIS, Z_AXIS };
 
 	template<typename T> struct is_complex : std::false_type {};
 	template<typename T> struct is_complex<std::complex<T>> : std::true_type {};
@@ -38,14 +50,6 @@ namespace Math {
 		and not std::is_same_v<T, char>
 		and not std::is_const_v<T>;
 
-#define ASSERT_SIZE_MISMATCH(Size, Size2) assert((Size2 >= Size && "Size mismatch!"));
-
-#define ASSERT_DIV_BYZERO(Value) assert((Value != T{} && "Cannot perform division by zero!"));
-
-#define STATICASSERT_COMPLEX_DIFFTYPES(Type1, Type2)\
-if constexpr (is_complex<T>::value)\
-static_assert(std::same_as<Type1, Type2>);\
-
 	/*
 		General vector expressed in cartesian coordinates - accepts the specified type and any size.
 		Not all internal operations are yet defined for complex numbers.
@@ -59,7 +63,7 @@ static_assert(std::same_as<Type1, Type2>);\
 		template<underlying_vector_type T2, std::size_t Size2>
 		friend class vector;
 
-		T _vector[Size]{};
+		std::array<T, Size> _vector;
 
 	public:
 		using size_type = std::size_t;
@@ -69,8 +73,10 @@ static_assert(std::same_as<Type1, Type2>);\
 		using const_pointer_type = T* const;
 
 		/*
-		Constructors: default (1), same value for all elements (2), initialize internal vector through another container (3),
-		initialize internal vector through an multiple values (4), fill the internal vector with random
+		Constructors: default (1), same value for all elements (2), 
+		initialize internal vector through another container (3),
+		initialize internal vector through an multiple values (4), 
+		fill the internal vector with random
 		numbers (5), others = defaulted
 		*/
 
@@ -105,17 +111,17 @@ static_assert(std::same_as<Type1, Type2>);\
 		   and instead prefer the constructor initializing the vector through random numbers
 		   (by passing std::size_t lower, std::size_t higher).
 		*/
-		template<std::size_t Sz, typename T2>
-		constexpr explicit vector(const T2 (&arr)[Sz])
-		requires (std::convertible_to<value_type, T2>)
+		template<std::size_t Sz>
+		constexpr explicit vector(const T(&arr)[Sz])
+		requires (std::convertible_to<value_type, T>)
 			: vector(arr, std::make_index_sequence<Sz>{}) {}
 
 	private:
 		// Perhaps taking const T2(&arr)[Size] would make this slower in case Size is very big and the caller
 		// only passes a small array? Take advantage of that and take a size that represents the actual size of the passed array
 		// instead: needs further checks too see if this improves anything
-		template <typename T2, std::size_t... Index>
-		constexpr explicit vector(const T2(&arr)[sizeof...(Index)],
+		template <std::size_t... Index>
+		constexpr explicit vector(const T(&arr)[sizeof...(Index)],
 			std::index_sequence<Index...>)
 			: _vector{ arr[Index]... } {}
 
@@ -135,23 +141,37 @@ static_assert(std::same_as<Type1, Type2>);\
 				std::begin(_vector));
 		}
 
-		constexpr explicit vector(size_type lower, size_type higher) {
-			std::mt19937 mt(std::random_device{}());
-			std::uniform_real_distribution<T> dist(lower, higher);
+	private:
 
+		template<typename Type>
+		constexpr auto get_random(Type lower, Type higher) {
+			static std::mt19937 mt(std::random_device{}());
+			static std::uniform_real_distribution<double> un{ static_cast<double>(lower),
+			static_cast<double>(higher) };
+
+			return un(mt);
+		}
+
+		constexpr static bool is_near_zero(double val, double epsilon) {
+			return val >= 0 && val <= std::abs(epsilon);
+		}
+
+	public:
+
+		constexpr explicit vector(T lower, T higher) {
 			for (size_type i = 0; i < Size; ++i) {
-				_vector[i] = dist(mt);
+				_vector[i] = get_random(lower, higher);
 			}
 		}
 
 		// Initialize the complex vector with random initial real and imaginary values
-		constexpr explicit vector(size_type lower, size_type higher)
+		constexpr explicit vector(long lower, long higher)
 		requires (is_complex<T>::value) {
-			std::mt19937 mt(std::random_device{}());
-			std::uniform_real_distribution<typename T::value_type> dist(lower, higher);
+			using Tp = typename T::value_type;
 
 			for (size_type i = 0; i < Size; ++i) {
-				_vector[i] = { dist(mt), dist(mt) };
+				_vector[i] = { get_random<Tp>(lower, higher),
+				get_random<Tp>(lower, higher) };
 			}
 		}
 
@@ -179,22 +199,22 @@ static_assert(std::same_as<Type1, Type2>);\
 			return _vector[index];
 		}
 
-		constexpr T& get_x() const noexcept {
+		constexpr const T& get_x() const noexcept {
 			return _vector[0];
 		}
 
-		constexpr T& get_y() const noexcept
-		requires (Size >= 1) {
+		constexpr const T& get_y() const noexcept
+			requires (Size > 1) {
 			return _vector[1];
 		}
 
-		constexpr T& get_z() const noexcept
-		requires (Size >= 2) {
+		constexpr const T& get_z() const noexcept
+			requires (Size > 2) {
 			return _vector[2];
 		}
 
-		constexpr T& get_w() const noexcept
-		requires (Size >= 3) {
+		constexpr const T& get_w() const noexcept
+			requires (Size > 3) {
 			return _vector[3];
 		}
 
@@ -278,8 +298,8 @@ static_assert(std::same_as<Type1, Type2>);\
 		template<typename T2>
 		[[deprecated("substracting vector of type unsigned might cause issues!")]]
 		constexpr vector& operator-=(const vector<T2, Size>& rhs)
-		requires std::is_unsigned<T>::value {
-			return substract(rhs);
+			requires std::is_unsigned<T>::value{
+				return substract(rhs);
 		}
 
 		template<typename T2>
@@ -295,20 +315,20 @@ static_assert(std::same_as<Type1, Type2>);\
 		template<underlying_vector_type T2>
 		[[deprecated("substracting from an unsigned vector might cause issues!")]]
 		constexpr vector& operator-=(T2 val)
-		requires std::is_unsigned<T>::value{
-			return substract(val);
+			requires std::is_unsigned<T>::value{
+				return substract(val);
 		}
 
 		template<underlying_vector_type T2>
 		friend constexpr vector operator-(vector lhs, T2 val) {
 			return lhs -= val;
 		}
-	
+
 	private:
 		template<underlying_vector_type T2>
 		constexpr vector& lambda_multiplicator(T2 lambda) {
-			std::for_each(begin(), end(), [lambda](auto& current) { 
-				current *= lambda; 
+			std::for_each(begin(), end(), [lambda](auto& current) {
+				current *= lambda;
 				});
 
 			return *this;
@@ -325,7 +345,7 @@ static_assert(std::same_as<Type1, Type2>);\
 		[[deprecated("multiplying vector of type unsigned might cause issues!")]]
 		constexpr vector& operator*=(T2 lambda)
 		requires std::is_unsigned<T>::value{
-			return lambda_multiplicator(lambda);
+				return lambda_multiplicator(lambda);
 		}
 
 		template<underlying_vector_type T2>
@@ -343,7 +363,7 @@ static_assert(std::same_as<Type1, Type2>);\
 	private:
 		template<typename T2>
 		constexpr vector& cross_product_internal(const vector<T2, Size>& rhs)
-		requires (Size == 3 
+		requires (Size == 3
 		and std::is_convertible<T2, value_type>::value) {
 			vector temp{ *this };
 
@@ -374,12 +394,12 @@ static_assert(std::same_as<Type1, Type2>);\
 		template<typename T2>
 		[[deprecated("Multiplication on two vectors of type unsigned might cause issues!")]]
 		constexpr vector& cross_product(const vector<T2, Size>& rhs)
-		requires std::is_unsigned<T>::value {
-			return cross_product_interna(rhs);
+		requires std::is_unsigned<T>::value{
+				return cross_product_interna(rhs);
 		}
 
-		// Not in-place
-		template<typename T2>
+			// Not in-place
+			template<typename T2>
 		friend constexpr vector cross_product(vector lhs, const vector<T2, Size>& rhs) {
 			return lhs.cross_product_internal(rhs);
 		}
@@ -404,9 +424,9 @@ static_assert(std::same_as<Type1, Type2>);\
 
 		template<underlying_vector_type T2>
 		constexpr vector& operator%=(T2 lambda)
-		requires (std::is_integral_v<T> 
+		requires (std::is_integral_v<T>
 		and std::is_integral_v<T2>
-		and !is_complex<T>) {
+		and not is_complex<T>::value) {
 			ASSERT_DIV_BYZERO(lambda);
 
 			std::for_each(std::begin(_vector), std::end(_vector),
@@ -430,7 +450,7 @@ static_assert(std::same_as<Type1, Type2>);\
 
 		friend constexpr auto scalar_triple_product(const vector& first,
 			const vector& other2, const vector& other3)
-		requires (Size == 3 
+		requires (Size == 3
 		and not is_complex<T>::value) {
 			vector temp{ first };
 			return other3.inner_product(temp.cross_product(other2));
@@ -439,7 +459,7 @@ static_assert(std::same_as<Type1, Type2>);\
 		// Not in place
 		friend constexpr vector vector_triple_product(const vector& first, const vector& other2,
 			const vector& other3)
-		requires (Size == 3 
+		requires (Size == 3
 		and not is_complex<T>::value) {
 			vector temp{ first };
 			vector temp3{ other3 };
@@ -447,11 +467,11 @@ static_assert(std::same_as<Type1, Type2>);\
 		}
 
 		friend constexpr bool are_coplanar(const vector& first, const vector& other2,
-			const vector& other3)
-		requires (Size == 3 
+			const vector& other3, double epsilon = 1E-6)
+		requires (Size == 3
 		and not is_complex<T>::value) {
 			auto result = scalar_triple_product(first, other2, other3);
-			return result >= 0 && result <= 1E-6;
+			return is_near_zero(result, epsilon);
 		}
 
 
@@ -469,41 +489,50 @@ static_assert(std::same_as<Type1, Type2>);\
 
 		// Return direction of a 2D vector. The vector components must be cartesian coordinates. x will return (angle)x, 
 		// y returns (angle)y. 
-		constexpr double direction_radiants_y() const 
-		requires (Size == 2 
+		constexpr double direction_radiants_y() const
+		requires (Size == 2
 		and not is_complex<T>::value) {
 			return std::atan2(_vector[0], _vector[1]); // (x / y)
 		}
 
-		constexpr double direction_radiants_x() const 
-		requires (Size == 2 
+		constexpr double direction_radiants_x() const
+		requires (Size == 2
 		and not is_complex<T>::value) {
 			return std::atan2(_vector[1], _vector[0]); // (y / x)
 		}
 
 		constexpr double direction_degrees_y() const {
-			return direction_radiants_y() * 180.0 / 3.141592653589793238463;
+			return direction_radiants_y() * 180.0 / std::numbers::pi;
 		}
 
 		constexpr double direction_degrees_x() const {
-			return direction_radiants_x() * 180.0 / 3.141592653589793238463;
+			return direction_radiants_x() * 180.0 / std::numbers::pi;
 		}
 
 
 		// Direction cosines of 3D vectors.
-		constexpr double direction_cosine(Cos type) const 
-		requires (Size == 3 
+		constexpr double direction_cosine(Cos type) const
+		requires (Size == 3
 		and not is_complex<T>::value) {
 			double denominator = magnitude();
 			ASSERT_DIV_BYZERO(denominator);
 
-			return static_cast<double>(_vector[static_cast<int>(type)] / denominator);
+			return static_cast<double>(_vector[static_cast<size_type>(type)] / denominator);
 		}
 
-		constexpr double direction_angle(Cos type) const 
-		requires (Size == 2 
+		// Direction cosines of N-D vectors (with indexes)
+		constexpr double direction_cosine(std::size_t index) const
+		requires (not is_complex<T>::value) {
+			double denominator = magnitude();
+			ASSERT_DIV_BYZERO(denominator);
+
+			return static_cast<double>(_vector[index] / denominator);
+		}
+
+		constexpr double direction_angle(Cos type) const
+		requires (Size == 2
 		and not is_complex<T>::value) {
-			return std::acos(direction_cosine(type));	
+			return std::acos(direction_cosine(type));
 		}
 
 		constexpr vector& normalize() {
@@ -516,8 +545,8 @@ static_assert(std::same_as<Type1, Type2>);\
 		// Return || magnitude || of this vector
 		constexpr double magnitude() const {
 			double sum = std::accumulate(begin(), end(), T{},
-				[](auto internal_sum, const auto& element) { 
-					return internal_sum + std::pow(element, 2); 
+				[](auto internal_sum, const auto& element) {
+					return internal_sum + std::pow(element, 2);
 				});
 
 			return std::sqrt(sum);
@@ -539,24 +568,24 @@ static_assert(std::same_as<Type1, Type2>);\
 		// Vector Parallelism Condition
 		// 3 dimensions case: checks whether the cross product is near 0
 		template<typename T2>
-		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other)
-		requires (Size == 3 
-		and not is_complex<T>::value 
-		and not is_complex<T2>::value)
+		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
+		requires (Size == 3
+		and not is_complex<T>::value
+			and not is_complex<T2>::value)
 		{
 			vector temp_cross = first;
 			vector temp = temp_cross.cross_product(other);
 			// Two vectors are parallel in 3D only if their cross product result is near zero.
-			return temp[0] >= 0 && temp[0] <= 1E-6
-				&& temp[1] >= 0 && temp[1] <= 1E-6
-				&& temp[2] >= 0 && temp[2] <= 1E-6;
+			return temp[0] >= 0 && temp[0] <= std::abs(epsilon)
+				&& temp[1] >= 0 && temp[1] <= std::abs(epsilon)
+				&& temp[2] >= 0 && temp[2] <= std::abs(epsilon);
 		}
 
 
 		// Other dimensions: scalar product method. Parallelism condition if result's near 0 (approx 1E-6)
 		template<typename T2>
-		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other)
-		requires (not is_complex<T>::value 
+		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
+		requires (not is_complex<T>::value
 		and not is_complex<T2>::value) {
 			auto sum_and_pow = [](auto sum, const auto& element) {
 				return sum + std::pow(element, 2);
@@ -568,23 +597,23 @@ static_assert(std::same_as<Type1, Type2>);\
 				0, sum_and_pow);
 			double rhs2 = std::accumulate(std::begin(other._vector), std::end(other._vector),
 				0, sum_and_pow);
-			return std::abs(rhs1 * rhs2 - lhs) <= 1E-6;
+			return is_near_zero(std::abs(rhs1 * rhs2 - lhs), epsilon);
 		}
 
 		// Perpendicular conditions
 		template<typename T2>
-		friend constexpr bool are_perpendicular(const vector& first, const vector<T2, Size>& other)
-		requires (not is_complex<T>::value 
+		friend constexpr bool are_perpendicular(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
+		requires (not is_complex<T>::value
 		and not is_complex<T2>::value) {
 			auto inner_product = first.inner_product(other);
-			return inner_product >= 0 && inner_product <= 1E-6;
+			return is_near_zero(inner_product, epsilon);
 		}
 
 		// Angle between two vectors (in radiants)
 		// Todo: Add support for complex vectors
 		template<typename T2>
 		constexpr double angle_between_radiants(const vector<T2, Size>& other)
-		requires (not is_complex<T>::value) {
+			requires (not is_complex<T>::value) {
 			double inner_prod = inner_product(other);
 			double magnitude_mult = magnitude() * other.magnitude();
 			ASSERT_DIV_BYZERO(magnitude_mult);
@@ -594,7 +623,7 @@ static_assert(std::same_as<Type1, Type2>);\
 
 		template<typename T2>
 		constexpr double angle_between_degrees(const vector<T2, Size>& other) {
-			return angle_between_radiants(other) * 180 / 3.141592653589793238463;
+			return angle_between_radiants(other) * 180 / std::numbers::pi;
 		}
 
 		constexpr bool is_empty() const {
@@ -604,11 +633,15 @@ static_assert(std::same_as<Type1, Type2>);\
 
 		auto operator<=>(const vector&) const = default;
 
-		template<typename Stream>
-		constexpr void print(Stream& stream) const {
-			for (auto x : _vector) stream << x << ' ';
+		friend std::ostream& operator<< (std::ostream& stream, const vector& rhs) {
+			for (auto x : rhs._vector) {
+				stream << x << ' ';
+			}
 			stream << '\n';
+
+			return stream;
 		}
+
 
 		consteval value_type size() const noexcept {
 			return Size;
@@ -653,16 +686,15 @@ static_assert(std::same_as<Type1, Type2>);\
 	}
 
 
-  
+
 	// Deduction guides
-	// [1] aggregate initialization
+	// [1] normal constructor calls
 	template<typename T2, std::same_as<T2>...Args>
 	vector(T2, Args...)->vector<T2, sizeof...(Args) + 1>;
 
-	// [2] complex numbers deduction 
-	template <arithmetic_char_const_excluded T, std::size_t N, std::size_t M>
-	vector(T const (&arr)[N][M])->vector<std::complex<T>, N>;
-
+	// [2] parameter pack constructor calls
+	template<typename T, std::size_t Sz>
+	vector(const T(&)[Sz])->vector<T, Sz>;
 
 }
 
