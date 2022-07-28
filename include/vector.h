@@ -684,6 +684,49 @@ namespace MathLbr {
 
 			return stream;
 		}
+		
+		 // Todo: Remove rotations and simplify calculus when Math::Matrix is available
+		constexpr void rotate_around_z(T rotation_angle) 
+		requires (Size == 3
+		and not is_complex<T>::value)
+		{
+		    auto cos = std::cos(rotation_angle);
+		    auto sin = std::sin(rotation_angle);
+		    T tempX = _vector[0] * cos - 
+			_vector[1] * sin;
+		    T tempY = _vector[0] * sin +
+			_vector[1] * cos;
+		    _vector[0] = tempX;
+		    _vector[1] = tempY;
+		    // _vector[2] remains the same
+		}
+
+		constexpr void rotate_around_y(T rotation_angle)
+		requires (Size == 3
+		and not is_complex<T>::value) {
+		    auto cos = std::cos(rotation_angle);
+		    auto sin = std::sin(rotation_angle);
+		    T tempX = _vector[0] * cos +
+			_vector[2] * sin;
+		    T tempZ = -(_vector[0]) * sin +
+			_vector[2] * cos;
+		    _vector[0] = tempX;
+		    // _vector[1] remains the same
+		    _vector[2] = tempZ;
+		}
+
+		constexpr void rotate_around_x(T rotation_angle)
+		requires (Size == 3
+		and not is_complex<T>::value) {
+		    auto cos = std::cos(rotation_angle);
+		    auto sin = std::sin(rotation_angle);
+		    T tempY = _vector[1] * cos -
+			_vector[2] * sin;
+		    T tempZ = _vector[1] * sin +
+			_vector[2] * cos;
+		    _vector[1] = tempY;
+		    _vector[2] = tempZ;
+		}
 
 
 		consteval value_type size() const noexcept {
