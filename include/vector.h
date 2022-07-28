@@ -632,6 +632,49 @@ namespace MathLbr {
 		}
 
 		auto operator<=>(const vector&) const = default;
+		
+		// Convertsions: cartesian --> other coordinate system (as an array)
+		// Conversions: cartesian vector to another coordinate system -- returns array
+		constexpr auto to_polar_array()
+		-> std::array<T, 2>
+		requires (not is_complex<T>::value
+		and Size == 2) {
+			ASSERT_DIV_BYZERO(_vector[0]);
+			return std::array<T, 2>{
+				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
+				std::atan(_vector[1] / _vector[0]) // y / x
+			};
+		}
+
+		constexpr auto to_spherical_array()
+		-> std::array<T, 3>
+		requires (not is_complex<T>::value
+		and Size == 3) {
+			auto res = std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2) +
+				std::pow(_vector[2], 2));
+			ASSERT_DIV_BYZERO(res);
+			ASSERT_DIV_BYZERO(_vector[0]);
+
+			// [0] = alpha, [1] = beta, [3] = theta
+			return std::array<T, 3>{
+				res,
+				std::atan(_vector[1] / _vector[0]),
+				std::acos(_vector[2] / res)
+			};
+		}
+
+		constexpr auto to_cylindrical_array()
+		-> std::array<T, 3>
+		requires (not is_complex<T>::value
+		and Size == 3) {
+			ASSERT_DIV_BYZERO(_vector[0])
+
+			return std::array<T, 3> {
+				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
+				std::atan(_vector[1] / _vector[0]),
+				_vector[2]
+			};
+		}
 
 		friend std::ostream& operator<< (std::ostream& stream, const vector& rhs) {
 			for (auto x : rhs._vector) {
@@ -683,6 +726,42 @@ namespace MathLbr {
 		copy.normalize();
 
 		return copy;
+	}
+	
+	// Polar coordinates --> cartesian vector
+	// radius in radiants
+	template<typename T>
+	constexpr auto init_from_polar(T r, T radius)
+	->vector<T, 2>
+	requires (not is_complex<T>::value) {
+		return vector{ {
+			r * std::cos(radius),
+			r * std::sin(radius)
+		} };
+	}
+
+	// Cylindrical coordinates --> cartesian vector
+	template<typename T>
+	constexpr auto init_from_cylindrical(T magnitude, T radius, T z)
+	->vector<T, 3>
+	requires (not is_complex<T>::value) {
+		return vector{ {
+			magnitude * std::cos(radius),
+			magnitude * std::sin(radius),
+			z
+		} };
+	}
+
+	// Spherical coordinates --> cartesian vector
+	template<typename T>
+	constexpr auto init_from_spherical(T alpha, T beta, T theta)
+	->vector<T, 3>
+	requires (not is_complex<T>::value) {
+	return vector{ {
+			alpha * std::sin(theta) * std::cos(beta),
+			alpha * std::sin(theta) * std::sin(beta),
+			alpha * std::cos(theta)
+		} };
 	}
 
 
