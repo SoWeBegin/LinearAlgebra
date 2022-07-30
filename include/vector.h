@@ -70,7 +70,8 @@ namespace MathLbr {
 		using value_type = T;
 		using pointer_type = T*;
 		using reference_type = T&;
-		using const_pointer_type = T* const;
+		using const_pointer_type = const T*;
+		using const_reference_type = const T&;
 
 		/*
 		Constructors: default (1), same value for all elements (2), 
