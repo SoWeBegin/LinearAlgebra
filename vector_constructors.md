@@ -36,3 +36,6 @@
    constexpr vector& operator=(vector&& other) noexcept = default;
    constexpr vector& operator=(const vector& other) = default;
    ```
+  <hr><br>
+1) **Default constructor**. Constructs an empty vector. The underlying container used to store elements depends on whether an explicit size (as a second template argument) was passed.
+2)
