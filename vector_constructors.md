@@ -36,6 +36,12 @@
    constexpr vector& operator=(vector&& other) noexcept = default;
    constexpr vector& operator=(const vector& other) = default;
    ```
-  <hr><br>
+<hr><br>
+  
 1) **Default constructor**. Constructs an empty vector. The underlying container used to store elements depends on whether an explicit size (as a second template argument) was passed.
-2)
+2) Contructs the container with each element initialized to `value`. This constructor effectively exists only if the underlying container is `std::array`, that is, if a size was passed as a second template parameter (such as `MathLbr::vector<int, 4>`).
+3) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
+4) Constructs the vector with the contents of the range [first, last].
+   <br> The type of the range must be convertible to the container's type (for example, a range of `std::complex` types cannot be used to initialize a vector of `int`s).
+   <br>*Note:* For a non-dynamically allocated vector (that is, a vector created with an explicitly passed template size), an assert is performed to ensure that the container's   size is greater or equal than the size of the passed range (Size >= range size). Asserts might be disabled, refer to <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.
+
