@@ -36,7 +36,7 @@ int main() {
 	4 * a2;
 	MathLbr::vector<std::size_t> a3{ {2,3,2} };
 	MathLbr::vector<std::size_t> b3{ {5,5} };
-	a3 * b3;
+	a3 * b3; // Doesn't make sense and is thus disallowed
 }
 ```
   
