@@ -9,3 +9,9 @@ Small C++20 library about linear algebra.
 <a href="">Operator overloads</a>
 
 
+## Resources
+https://en.wikipedia.org/wiki/Dot_product
+https://proofwiki.org/wiki/Definition:Dot_Product/Complex
+https://math.stackexchange.com/questions/4590656/cross-product-of-complex-vectors-depending-on-the-definition-of-complex-dot-prod
+https://proofwiki.org/wiki/Definition:Vector_Cross_Product/Complex
+
