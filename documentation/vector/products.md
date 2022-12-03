@@ -45,6 +45,7 @@ In this case, the complex dot product might have multiple, different definitions
 - $a\cdot b=\sum_i a_i b_i$   -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_NEITHER`
 - $a\cdot b=\sum_i a_i^* b_i$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT`
 - $a\cdot b=\sum_i a_i b_i^*$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_SECOND_ARGUMENT`
+<br>**If no template argument is passed, option 2 is chosen (which is the most common).**
 3) Performs the dot product between two complex numbers. https://proofwiki.org/wiki/Definition:Dot_Product/Complex
 
 For functions 1) and 2), an assert is performed to ensure that the sizes of the vectors match.
