@@ -67,7 +67,7 @@ int main() {
 	// Complex inner product between two complex vectors
 	MathLbr::vector<std::complex<double>> c{ {{2,4},{6,7},{3,3}} };
 	MathLbr::vector<std::complex<double>> d{ {{5,5},{9,8},{9,9}} };
-	MathLbr::Vector::inner_product<MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>(c, d);
+	MathLbr::Vector::inner_product(c, d); // Uses MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT by default
 	
 	// Inner product between two complex numbers
 	std::complex<double> cmp{1,2};
