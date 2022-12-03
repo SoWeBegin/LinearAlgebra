@@ -9,7 +9,7 @@
    ```
 3) ```cpp
    template<Concepts::arithmetic_char_const_excluded T, Concepts::arithmetic_char_const_excluded T2>
-   constexpr auto complex_cross_product(const std::complex<T>& lhs, const std::complex<T> rhs);
+   constexpr auto complex_cross_product(const std::complex<T>& lhs, const std::complex<T2> rhs);
    ```
 <br>
 
@@ -59,20 +59,21 @@ For functions 1) and 2), an assert is performed to ensure that the sizes of the 
 
 int main() {
 	// Normal cross and inner products
-	MathLbr::vector<int> a{{2,3,4}};
-	MathLbr::vector<int> b{{3,4,2}};
-	MathLbr::Vector::cross_product(a, b);
-	MathLbr::Vector::inner_product(a, b);
-	
+	MathLbr::vector<int> a{ {2,3,4} };
+	MathLbr::vector<int> b{ {3,4,2} };
+	MathLbr::vector<int> res = MathLbr::Vector::cross_product(a, b);
+	auto res2 = MathLbr::Vector::inner_product(a, b);
+	a.cross_product(b); // in place
+
 	// Complex inner product between two complex vectors
 	MathLbr::vector<std::complex<double>> c{ {{2,4},{6,7},{3,3}} };
 	MathLbr::vector<std::complex<double>> d{ {{5,5},{9,8},{9,9}} };
-	MathLbr::Vector::inner_product(c, d); // Uses MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT by default
-	
+	std::complex<double> res3 = MathLbr::Vector::inner_product(c, d); // Uses MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT by default
+
 	// Inner product between two complex numbers
-	std::complex<double> cmp{1,2};
-	std::complex<double> cmp2{3,3};
-	MathLbr::Vector::complex_inner_product(cmp, cmp2);
-	MathLbr::Vector::complex_cross_product(cmp, cmp2);
+	std::complex<double> cmp{ 1,2 };
+	std::complex<double> cmp2{ 3,3 };
+	auto result = MathLbr::Vector::complex_inner_product(cmp, cmp2);
+	auto result2 = MathLbr::Vector::complex_cross_product(cmp, cmp2);
 }
 ```
