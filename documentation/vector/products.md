@@ -36,7 +36,7 @@ The cross product is defined for both arithmetic and complex types. For the latt
 
 1) Computes the dot product between `lhs` and `other`. The result that is returned has the type `T`, which is the type of the passed vectors. To avoid mistakes such as trying to obtain the dot product between complex and non complex vectors,
 both underlying vector types must be the same.
-If `std::complex` is used as the underlying type, then the inner product performs the following formula: $∑ conj(a) * b$, with `conj(lhs[i]) == conj(ai)` and `other[i] == bi`.<br>
+If `std::complex` is used as the underlying type, then the inner product performs the following formula: $∑ conj(a) * b$, with `conj(lhs[i]) == conj(ai)` and `other[i] == bi`. This means that the convention of the complex dot product used is a dot product which is anti linear to its first argument `a`.<br>
 2) Performs the dot product between two complex numbers. https://proofwiki.org/wiki/Definition:Dot_Product/Complex
 <hr><br>
 
