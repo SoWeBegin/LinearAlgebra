@@ -47,10 +47,32 @@ In this case, the complex dot product might have multiple, different definitions
 <br>**If no template argument is passed, option 1 is chosen (which is the most common).**
 3) Performs the dot product between two complex numbers. https://proofwiki.org/wiki/Definition:Dot_Product/Complex
 
-For functions 1) and 2), an assert is performed to ensure that the sizes of the vectors match.
+For functions 1) and 2), in case the underlying container is `std::vector`, an assert is performed to ensure that the sizes of the vectors match. If the asserts are disabled, the function attempts to calculate the dot products anyway, resulting in undefined behavior.
+Otherwise, if the underlying container is `std::array` and the sizes differ, then this function cannot be called.
 
-# Triple Vector Product
+# Triple Products (Scalar and Vectorial)
+1) ```cpp
+   template<typename T, std::size_t Size>
+   constexpr T scalar_triple_product(const vector<T, Size>& first, const vector<T, Size>& other2, const vector<T, Size>& other3);
+   ```
+2) ```cpp  
+   template<typename T, std::size_t Size>
+   constexpr vector<T, Size> vector_triple_product(const vector<T, Size>& first, const vector<T, Size>& other2, const vector<T, Size>& other3);
+   ```
+<br>
 
+1) Performs the scalar triple product, and returns the result. All the sizes must be equal. For an underlying container `std::array`, this is ensured at compile time, while for an underlying container `std::vector`, an assert is performed to ensure that all sizes are equal. <br>
+If a complex type is used as the vector's type, then a template argument related to the wished dot product definition can be passed (see: dot product above). If no template argument is passed, the default parameter is `ComplexInnerProduct::ANTILINEAR_FIRST,ARGUMENT`, which is the most common.
+The scalar triple product is performed such as:
+
+$other3\cdot (first X other2)$, where `X` is the cross operation.
+
+2) Performs the vector triple product, returning the result in a new vector which has the same type and size as the passed vectors. All sizes must be equal 3, with the same rules as in 1). Unlike 1), the call for non-complex and complex types is identical (meaning that no special template argument regarding the wished dot product definition can be passed, since the cross product is the same for both anti linear in the first argument and antilinear in the second argument).
+The vector triple product is performed such as:
+
+$other3 X (first X other2)$, where `X` is the cross operation.
+
+In all cases, if the underlying container is `std::vector` and the asserts are disabled, and vectors with different sizes are passed, the functions will attempt to perform the triple product anyway, resulting in undefined behavior.
 <hr><br>
 
 
@@ -77,5 +99,12 @@ int main() {
 	std::complex<double> cmp2{ 3,3 };
 	auto result = MathLbr::Vector::complex_inner_product(cmp, cmp2);
 	auto result2 = MathLbr::Vector::complex_cross_product(cmp, cmp2);
+
+	// Triple products
+	MathLbr::vector<int> c1{ {5,5,5} };
+	MathLbr::vector<std::complex<double>> e{ {3,4,2} };
+
+	int result3 = MathLbr::Vector::scalar_triple_product(a, b, c1);
+	auto result4 = MathLbr::Vector::vector_triple_product(c, d, e);
 }
 ```
