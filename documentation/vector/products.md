@@ -17,11 +17,11 @@
 2) Same as 1), but the result is stored in a new `vector`, which has the same size and type of `lhs`.<br>
 3) This function performs the cross product between two complex numbers. https://proofwiki.org/wiki/Definition:Vector_Cross_Product/Complex<br>
 
-The cross product is defined for both arithmetic and complex types. For the latter, a "normal" cross product is performed on the conjugates of the complex elements. (See the definition of the inner product below).
-<br>In any case, the types of the elements of both vectors must be the same (this is to avoid mistakes such as trying to obtain the cross product between a complex vector and a non complex vector).<br>
+The cross product is defined for both arithmetic and complex types. For the latter, a normal cross product is performed, but for each resulting coordinate its conjugate is taken instead.
+<br>In any case, the types of the elements and the size of both vectors must be the same (this is to avoid mistakes such as trying to obtain the cross product between a complex vector and a non complex vector).<br>
 **Note**: The cross product between two vectors is *only* defined for 3D vectors, that is, the size of the vector must be equal to 3.
-<br> - For vectors whose underlying container is `std::array`, these functions do not exist if the size is not equal to 3.
-<br> - For vectors whose underlying container is `std::array`, an assert is performed. If the assert is disabled and the size is not 3, the function still attempts to perform the cross product, and undefined behavior occurs.
+<br> - For vectors whose underlying container is `std::array`, a static_assert is performed to ensure that both size are equal to 3.
+<br> - For vectors whose underlying container is `std::vector`, an assert is performed. If the assert is disabled and the sizes are not 3, the function still attempts to perform the cross product, and undefined behavior occurs.<br>
 
 # Inner Product (dot product)
 1) ```cpp
@@ -42,12 +42,15 @@ The cross product is defined for both arithmetic and complex types. For the latt
 both underlying vector types must be the same.
 2) Same as 1), but works on complex vectors, that is, `std::complex` is used as the underlying type.
 In this case, the complex dot product might have multiple, different definitions. By passing the correct template argument to this function, you are allowed to choose the convention that is used for the complex dot product between vectors `a` and `b`: 
-- $a\cdot b=\sum_i a_i^* b_i$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT`
-- $a\cdot b=\sum_i a_i b_i^*$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_SECOND_ARGUMENT`
+- $a\cdot b=\sum_i \overline {a_i} b_i$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT`
+- $a\cdot b=\sum_i a_i \overline {b_i}$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_SECOND_ARGUMENT`
 <br>**If no template argument is passed, option 1 is chosen (which is the most common).**
 3) Performs the dot product between two complex numbers. https://proofwiki.org/wiki/Definition:Dot_Product/Complex
 
 For functions 1) and 2), an assert is performed to ensure that the sizes of the vectors match.
+
+# Triple Vector Product
+
 <hr><br>
 
 
