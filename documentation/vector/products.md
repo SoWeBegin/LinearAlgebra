@@ -18,7 +18,7 @@
 3) This function performs the cross product between two complex numbers. https://proofwiki.org/wiki/Definition:Vector_Cross_Product/Complex<br>
 
 The cross product is defined for both arithmetic and complex types. For the latter, a normal cross product is performed, but for each resulting coordinate its conjugate is taken instead.
-<br>In any case, the types of the elements and the size of both vectors must be the same (this is to avoid mistakes such as trying to obtain the cross product between a complex vector and a non complex vector).<br>
+<br>In any case, the types of the elements of both vectors must be the same (this is to avoid mistakes such as trying to obtain the cross product between a complex vector and a non complex vector).<br>
 **Note**: The cross product between two vectors is *only* defined for 3D vectors, that is, the size of the vector must be equal to 3.
 <br> - For vectors whose underlying container is `std::array`, a static_assert is performed to ensure that both size are equal to 3.
 <br> - For vectors whose underlying container is `std::vector`, an assert is performed. If the assert is disabled and the sizes are not 3, the function still attempts to perform the cross product, and undefined behavior occurs.<br>
