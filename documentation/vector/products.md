@@ -42,10 +42,9 @@ The cross product is defined for both arithmetic and complex types. For the latt
 both underlying vector types must be the same.
 2) Same as 1), but works on complex vectors, that is, `std::complex` is used as the underlying type.
 In this case, the complex dot product might have multiple, different definitions. By passing the correct template argument to this function, you are allowed to choose the convention that is used for the complex dot product between vectors `a` and `b`: 
-- $a\cdot b=\sum_i a_i b_i$   -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_NEITHER`
 - $a\cdot b=\sum_i a_i^* b_i$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT`
 - $a\cdot b=\sum_i a_i b_i^*$ -> Template argument to pass is `MathLbr::ComplexInnerProduct::ANTILINEAR_SECOND_ARGUMENT`
-<br>**If no template argument is passed, option 2 is chosen (which is the most common).**
+<br>**If no template argument is passed, option 1 is chosen (which is the most common).**
 3) Performs the dot product between two complex numbers. https://proofwiki.org/wiki/Definition:Dot_Product/Complex
 
 For functions 1) and 2), an assert is performed to ensure that the sizes of the vectors match.
