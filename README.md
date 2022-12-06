@@ -16,4 +16,5 @@ https://proofwiki.org/wiki/Definition:Dot_Product/Complex<br>
 https://math.stackexchange.com/questions/4590656/cross-product-of-complex-vectors-depending-on-the-definition-of-complex-dot-prod<br>
 https://proofwiki.org/wiki/Definition:Vector_Cross_Product/Complex<br>
 https://www.sciencedirect.com/topics/mathematics/orthogonal-set-of-vector<br>
+https://math.stackexchange.com/questions/1041909/complex-projections-order-in-inner-product<br>
 
