@@ -146,25 +146,25 @@ TEST(OperatorOverloading, Subtraction) {
 	MathLbr::vector<int> result22{ {0,-1,-2,-3,2} };
 	EXPECT_EQ(b1 - a1, result22);
 
-EXPECT_EQ(a1 -= b1, result11); // a = {0, 1, 2, 3}
-MathLbr::vector<int> result33{ {1, 0, -1, -2, 2} };
-EXPECT_EQ(b1 -= a1, result33);
+	EXPECT_EQ(a1 -= b1, result11); // a = {0, 1, 2, 3}
+	MathLbr::vector<int> result33{ {1, 0, -1, -2, 2} };
+	EXPECT_EQ(b1 -= a1, result33);
 
-// Dynamic and non dynamic
-MathLbr::vector<int> a2{ {1,2,3,4,5} };
-MathLbr::vector<int, 2> b2{ {1,2} };
-MathLbr::vector<int> result111{ {0, 0, 3, 4, 5} };
-EXPECT_EQ(a2 - b2, result111);
-MathLbr::vector<int, 2> result222{ {0,0} };
-EXPECT_EQ(b2 - a2, result222);
+	// Dynamic and non dynamic
+	MathLbr::vector<int> a2{ {1,2,3,4,5} };
+	MathLbr::vector<int, 2> b2{ {1,2} };
+	MathLbr::vector<int> result111{ {0, 0, 3, 4, 5} };
+	EXPECT_EQ(a2 - b2, result111);
+	MathLbr::vector<int, 2> result222{ {0,0} };
+	EXPECT_EQ(b2 - a2, result222);
 
-// Complex
-MathLbr::vector<std::complex<double>> complex{ {{1.3,3},{2,2.3}} };
-MathLbr::vector<std::complex<double>, 4> complex2{ {{1.3,3},{2,2.3},{3,3},{4,4}} };
-MathLbr::vector<std::complex<double>, 4> expected1{ {{0,0},{0,0},{3,3},{4,4}} };
-MathLbr::vector<std::complex<double>> expected2{ {{0,0},{0,0}} };
-EXPECT_EQ(complex2 - complex, expected1);
-EXPECT_EQ(complex - complex2, expected2);
+	// Complex
+	MathLbr::vector<std::complex<double>> complex{ {{1.3,3},{2,2.3}} };
+	MathLbr::vector<std::complex<double>, 4> complex2{ {{1.3,3},{2,2.3},{3,3},{4,4}} };
+	MathLbr::vector<std::complex<double>, 4> expected1{ {{0,0},{0,0},{3,3},{4,4}} };
+	MathLbr::vector<std::complex<double>> expected2{ {{0,0},{0,0}} };
+	EXPECT_EQ(complex2 - complex, expected1);
+	EXPECT_EQ(complex - complex2, expected2);
 }
 
 TEST(OperatorOverloading, Division) {
