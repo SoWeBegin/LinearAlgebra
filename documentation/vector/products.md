@@ -1,11 +1,10 @@
 # Cross Product
 1) ```cpp
-   template<typename T2>
-   constexpr vector& cross_product(const vector<T2, Size>& rhs);
+   constexpr vector& cross_product(const vector& rhs);
    ```
 2) ```cpp
-   template<typename T, typename T2, std::size_t Size1>
-   constexpr vector<T, Size1> cross_product(vector<T, Size1> lhs, const vector<T2, Size1>& rhs);
+   template<typename T, std::size_t Size1>
+   constexpr vector<T, Size1> cross_product(vector<T, Size1> lhs, const vector<T, Size1>& rhs);
    ```
 3) ```cpp
    template<Concepts::arithmetic_char_const_excluded T, Concepts::arithmetic_char_const_excluded T2>
