@@ -1,7 +1,7 @@
 # LinearAlgebra
 (yet) Small C++20 library about linear algebra.
 
-## MathLbr::vector
+# MathLbr::vector
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/vector_general.md">Brief Introduction</a></br>
 ### Member functions
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/vector_constructors.md">Constructors</a><br>
@@ -27,9 +27,11 @@
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/similarityChecks.md">Conditions: Parallelism, Coplanarity, Orthogonality</a><br>
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/size.md">Vector's Size</a><br>
 
-
 ## Particular Definitions (Enums)
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/definitions.md">Cos enum, ComplexInnerProduct enum</a><br>
+
+# MathLbr::matrix
+... Incoming
 
 ## Resources
 https://en.wikipedia.org/wiki/Dot_product<br>
