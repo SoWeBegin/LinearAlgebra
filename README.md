@@ -27,7 +27,7 @@
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/similarityChecks.md">Conditions: Parallelism, Coplanarity, Orthogonality</a><br>
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/size.md">Vector's Size</a><br>
 
-## Particular Definitions (Enums)
+### Particular Definitions (Enums)
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/definitions.md">Cos enum, ComplexInnerProduct enum</a><br>
 
 # MathLbr::matrix
