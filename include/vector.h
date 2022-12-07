@@ -1,10 +1,12 @@
 #ifndef VECTOR_MATH_MINILIBRARY
 #define VECTOR_MATH_MINILIBRARY
 
+#include "utility.h"
+
 #include <array>
+#include <vector>
 #include <algorithm>
 #include <cmath>
-#include <complex>
 #include <cassert>
 #include <concepts>
 #include <initializer_list> 
@@ -17,38 +19,226 @@
 #include <utility>
 
 
-// Todo: remove friend functions from vector and move them in namespace Math::
 
-#define ASSERT_SIZE_MISMATCH(Size, Size2) assert((Size2 >= Size and "Size mismatch!"));
-
-#define ASSERT_DIV_BYZERO(Value) assert((Value != T{} and "Cannot perform division by zero!"));
-
-#define STATICASSERT_COMPLEX_DIFFTYPES(Type1, Type2)\
-if constexpr (is_complex<T>::value)\
-static_assert(std::same_as<Type1, Type2>);\
-
-
+#if (defined(_MSVC_LANG) && _MSVC_LANG < 202002L)
+#error "MathLbr: Only C++20 and newer language standards are supported."
+#elif (!defined(_MSVC_LANG) && __cplusplus < 202002L)
+#pragma error "MathLbr: Only C++20 and newer language standards are supported."
+#endif
 
 namespace MathLbr {
 
-	enum class Cos { X_AXIS = 0, Y_AXIS, Z_AXIS };
+	template<Concepts::underlying_vector_type T, std::size_t Size = dynamic_extent>
+	class vector;
 
-	template<typename T> struct is_complex : std::false_type {};
-	template<typename T> struct is_complex<std::complex<T>> : std::true_type {};
 
-	// only allows arithmetic types (chars excluded) and complex numbers. 
-	// const types are unneccessary as they disallow most operations.
-	template<typename T>
-	concept underlying_vector_type =
-		(is_complex<T>::value or std::is_arithmetic_v<T>)
-		and not std::is_same_v<T, char>
-		and not std::is_const_v<T>;
+	namespace Vector {
+		template<Concepts::underlying_vector_type T, std::size_t Size, typename T2>
+		constexpr vector<T, Size> lambda_multiplication(const vector<T, Size>& vec, T2 lambda) {
+			using Type = decltype(std::declval<T>()* std::declval<T2>());
+			vector<Type, Size> temp(vec);
 
-	template<typename T>
-	concept arithmetic_char_const_excluded =
-		std::is_arithmetic_v<T>
-		and not std::is_same_v<T, char>
-		and not std::is_const_v<T>;
+			return temp.lambda_multiplicator(lambda);
+		}
+
+
+		template<typename T, std::size_t Size>
+		constexpr vector<T, Size> normalize(vector<T, Size> other) {
+			other.normalize();
+			return other;
+		}
+
+
+		template<Concepts::underlying_vector_type T, std::size_t Size1>
+		constexpr vector<T, Size1> cross_product(vector<T, Size1> lhs, const vector<T, Size1>& rhs) {
+			return lhs.cross_product(rhs);
+		}
+
+		template<Concepts::underlying_vector_type T, std::size_t Size>
+		constexpr T inner_product(const vector<T, Size>& lhs, const vector<T, Size>& other)
+			requires (not Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(lhs.size() == other.size());
+			}
+			return std::inner_product(lhs.begin(), lhs.end(),
+				other.begin(), T{});
+		}
+
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+			Concepts::underlying_vector_type T, std::size_t Size>
+		constexpr T inner_product(const vector<T, Size>& lhs, const vector<T, Size>& other)
+			requires (Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(lhs.size() == other.size());
+			}
+
+			T sum = {};
+			if constexpr (definition_type == ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT) {
+				for (std::size_t i = 0; i < lhs.size(); ++i) {
+					sum += (std::conj(lhs[i]) * (other[i]));
+				}
+			} else if constexpr (definition_type == ComplexInnerProduct::ANTILINEAR_SECOND_ARGUMENT) {
+				for (std::size_t i = 0; i < lhs.size(); ++i) {
+					sum += (lhs[i] * std::conj(other[i]));
+				}
+			}
+			return sum;
+		}
+
+		template<Concepts::arithmetic_char_const_excluded T, Concepts::arithmetic_char_const_excluded T2>
+		constexpr auto complex_inner_product(const std::complex<T>& lhs, const std::complex<T2>& rhs)
+			-> decltype(std::declval<T>()* std::declval<T2>() + std::declval<T>() * std::declval<T2>()) {
+			return lhs.real() * rhs.real() + lhs.imag() * rhs.imag();
+		}
+
+		template<Concepts::arithmetic_char_const_excluded T, Concepts::arithmetic_char_const_excluded T2>
+		constexpr auto complex_cross_product(const std::complex<T>& lhs, const std::complex<T2> rhs)
+			-> decltype(std::declval<T>()* std::declval<T2>() - std::declval<T>() * std::declval<T2>()) {
+			return lhs.real() * rhs.imag() - lhs.imag() * rhs.real();
+		}
+
+		template<typename T, std::size_t Size>
+		constexpr T scalar_triple_product(const vector<T, Size>& first, const vector<T, Size>& other2,
+			const vector<T, Size>& other3)
+		requires (not Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(first.size() == other2.size() and first.size() == other3.size());
+			}
+
+			return inner_product(other3, cross_product(first, other2));
+		}
+
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+			typename T, std::size_t Size>
+		constexpr T scalar_triple_product(const vector<T, Size>& first, const vector<T, Size>& other2,
+			const vector<T, Size>& other3)
+			requires (Concepts::is_complex<T>::value) {
+
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(first.size() == other2.size() and first.size() == other3.size());
+			}
+			return inner_product<definition_type>(other3, cross_product(first, other2));
+		}
+
+		template<typename T, std::size_t Size>
+		constexpr vector<T, Size> vector_triple_product(const vector<T, Size>& first, const vector<T, Size>& other2,
+			const vector<T, Size>& other3) {
+			if constexpr (!Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				static_assert(Size == 3, "scalar triple product only accepts 3D vectors!");
+			}
+			else assert(first.size() == other2.size() and first.size() == other3.size() and first.size() == 3);
+
+			return cross_product(other3, cross_product(first, other2));
+		}
+
+		template<typename T, std::size_t Size>
+		constexpr bool are_parallel(const vector<T, Size>& first, const vector<T, Size>& other,
+			double epsilon = 1E-6)
+		requires (not Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(other.size() == first.size());
+			}
+
+			// 3 dimensions case: checks whether the cross product is near 0
+			if (first.size() == 3) {
+				vector<T, Size> temp = cross_product(first, other);
+				// Two vectors are parallel in 3D only if their cross product result is near zero.
+				return temp[0] >= 0 && temp[0] <= std::abs(epsilon)
+					&& temp[1] >= 0 && temp[1] <= std::abs(epsilon)
+					&& temp[2] >= 0 && temp[2] <= std::abs(epsilon);
+			}
+			// Other dimensions: scalar product method. Parallelism condition is true if result's near 0 (approx 1E-6)
+			auto sum_and_pow = [](auto sum, const auto& element) {
+				return static_cast<T>(sum + std::pow(element, 2));
+			};
+
+			T inner_prod = inner_product(first, other);
+			double lhs = std::pow(inner_prod, 2);
+			double rhs1 = std::accumulate(std::begin(first), std::end(first),
+				T{}, sum_and_pow);
+			double rhs2 = std::accumulate(std::begin(other), std::end(other),
+				T{}, sum_and_pow);
+			return is_near_zero(std::abs(rhs1 * rhs2 - lhs), epsilon);
+		}
+
+		// To review
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+			typename T, std::size_t Size>
+		constexpr bool are_parallel(const vector<T, Size>& first, const vector<T, Size>& other,
+			double epsilon = 1E-6)
+		requires (Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(other.size() == first.size());
+			}
+
+			auto result = std::abs(inner_product<definition_type>(normalize(first), normalize(other)).real());
+			return ((result >= 1 && result <= (1 + epsilon)) || (result <= 1 && result >= (1 - epsilon)));
+		}
+
+		template<typename T, std::size_t Size>
+		constexpr bool are_perpendicular(const vector<T, Size>& first, const vector<T, Size>& other, double epsilon = 1E-6)
+		requires (not Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(other.size() == first.size());
+			}
+			auto inner_prod = inner_product(first, other);
+			return is_near_zero(inner_prod, epsilon);
+		}
+
+		// Should be OK, see https://www.sciencedirect.com/topics/mathematics/orthogonal-set-of-vector
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+			typename T, std::size_t Size>
+		constexpr bool are_perpendicular(const vector<T, Size>& first, const vector<T, Size>& other, double epsilon = 1E-6)
+		requires (Concepts::is_complex<T>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(other.size() == first.size());
+			}
+			auto inner_prod = inner_product<definition_type>(first, other);
+			return is_near_zero_complex(inner_prod, epsilon);
+		}
+
+		template<typename T, std::size_t Size>
+		constexpr bool are_coplanar(const vector<T, Size>& first, const vector<T, Size>& other2,
+			const vector<T, Size>& other3, double epsilon = 1E-6)
+		requires (not Concepts::is_complex<T>::value) {
+			if constexpr (!Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				static_assert(Size == 3, "scalar triple product only accepts 3D vectors!");
+			}
+			else assert(first.size() == other2.size() and first.size() == other3.size() and first.size() == 3);
+
+			auto result = scalar_triple_product(first, other2, other3);
+			return is_near_zero(result, epsilon);
+		}
+
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+			typename T, std::size_t Size>
+		constexpr bool are_coplanar(const vector<T, Size>& first, const vector < T, Size>& other2,
+			const vector<T, Size> other3, double epsilon = 1E-6)
+		requires (Concepts::is_complex<T>::value) {
+			if constexpr (!Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				static_assert(Size == 3, "scalar triple product only accepts 3D vectors!");
+			}
+			else assert(first.size() == other2.size() and first.size() == other3.size() and first.size() == 3);
+
+			auto result = scalar_triple_product<definition_type>(first, other2, other3);
+			return is_near_zero_complex(result, epsilon);
+		}
+
+
+		template<typename T, std::size_t Size>
+		constexpr vector<T, Size> projection(vector<T, Size> first, const vector<T, Size>& other)
+		requires (not Concepts::is_complex<T>::value) {
+			return first.vector_projection_from(other);
+		}
+
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
+		typename T, std::size_t Size>
+		constexpr vector<T, Size> projection(vector<T, Size> first, const vector<T, Size>& other)
+		requires (Concepts::is_complex<T>::value) {
+			return first.vector_projection_from<definition_type>(other);
+		}
+	}
+
 
 	/*
 		General vector expressed in cartesian coordinates - accepts the specified type and any size.
@@ -56,14 +246,16 @@ namespace MathLbr {
 		For a specialization of this vector representation with polar coordinates, see @...
 	*/
 
-	template<underlying_vector_type T, std::size_t Size>
+	template<Concepts::underlying_vector_type T, std::size_t Size>
 	class vector {
 
+
 	private:
-		template<underlying_vector_type T2, std::size_t Size2>
+		template<Concepts::underlying_vector_type T2, std::size_t Size2>
 		friend class vector;
 
-		std::array<T, Size> _vector;
+		[[no_unique_address]] std::conditional_t<Concepts::dynamic_extent_enabled<Size, dynamic_extent>,
+			std::vector<T>, std::array<T, Size>> _vector;
 
 	public:
 		using size_type = std::size_t;
@@ -72,187 +264,197 @@ namespace MathLbr {
 		using reference_type = T&;
 		using const_pointer_type = const T*;
 		using const_reference_type = const T&;
+		using underlying_container = std::conditional_t<Concepts::dynamic_extent_enabled<Size, dynamic_extent>,
+			std::vector<T>, std::array<T, Size>>;
+		template<typename _T>
+		using complex_internal_value_type = typename Concepts::is_complex<_T>::value_type;
+	
+
 
 		/*
-		Constructors: default (1), same value for all elements (2), 
+		Constructors: default (1), same value for all elements (2),
 		initialize internal vector through another container (3),
-		initialize internal vector through an multiple values (4), 
+		initialize internal vector through an multiple values (4),
 		fill the internal vector with random
 		numbers (5), others = defaulted
 		*/
 
-		constexpr vector() = default;
-
-		constexpr explicit vector(value_type value) {
+		constexpr vector()
+		requires (not Concepts::dynamic_extent_enabled<Size, dynamic_extent>) = default;
+		
+		constexpr explicit vector(value_type value)
+		requires (!Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 			std::fill(std::begin(_vector), std::end(_vector), value);
 		}
 
+		constexpr explicit vector(size_type count)
+		requires (Concepts::dynamic_extent_enabled<Size, dynamic_extent>)
+			: _vector{ std::vector<T>(count) } {}
+
+
 		template<std::input_iterator InputIter>
 		constexpr vector(InputIter first, InputIter last) {
-			static_assert(std::convertible_to<value_type,
-				typename std::iterator_traits<InputIter>::value_type>,
+			static_assert(std::convertible_to<typename std::iterator_traits<InputIter>::value_type,
+				value_type>,
 				"The type of InputIter must be convertible to the type of Math::Vector");
-			ASSERT_SIZE_MISMATCH(std::distance(first, last), Size);
+			const auto distance = std::distance(first, last);
+			MATHLBR_ASSERT_SIZE_MISMATCH(distance, Size);
 
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(distance);
 			std::copy(first, last, std::begin(_vector));
+
+			VALUE_INITIALIZE_REMAINING_ELEMENTS(distance, _vector.size());
 		}
 
-		/* [4]
-		template<typename First, typename... Rest>
-		requires (std::convertible_to<value_type, First>
-		and std::conjunction_v<std::is_convertible<First, Rest>...>
-		and sizeof...(Rest) + 1 <= Size)
-		constexpr explicit vector(const First& first, const Rest... rest)
-			: _vector{first, rest...} {}
-		*/
 
-		/* Call such as Math::vector<int, 6> vec({3,4,5,2});
-		   This constructor was added instead of constructor [4] to avoid
-		   a call such as Math::vector<int, 2> vec(2, 3) to call constructor [4],
-		   and instead prefer the constructor initializing the vector through random numbers
-		   (by passing std::size_t lower, std::size_t higher).
-		*/
-		template<std::size_t Sz>
-		constexpr explicit vector(const T(&arr)[Sz])
-		requires (std::convertible_to<value_type, T>)
+		template<size_type Sz>
+		constexpr explicit vector(const value_type(&arr)[Sz])
 			: vector(arr, std::make_index_sequence<Sz>{}) {}
 
 	private:
-		// Perhaps taking const T2(&arr)[Size] would make this slower in case Size is very big and the caller
-		// only passes a small array? Take advantage of that and take a size that represents the actual size of the passed array
-		// instead: needs further checks too see if this improves anything
-		template <std::size_t... Index>
-		constexpr explicit vector(const T(&arr)[sizeof...(Index)],
-			std::index_sequence<Index...>)
-			: _vector{ arr[Index]... } {}
+		template <size_type... Index>
+		constexpr explicit vector(const value_type(&arr)[sizeof...(Index)],
+			std::index_sequence<Index...>) {
+
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(sizeof...(Index));
+			_vector = { arr[Index]... }; 
+
+			VALUE_INITIALIZE_REMAINING_ELEMENTS(sizeof...(Index), _vector.size());
+		}
+
+		constexpr void initialize_vector(size_type count, value_type val = value_type{})
+		requires (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+			_vector = std::vector<T>(count, val);
+		}
 
 	public:
-		template<typename T2, std::size_t Size2>
+		template<typename T2, size_type Size2>
 		constexpr vector(const vector<T2, Size2>& other)
-		requires (Size2 <= Size) {
+		requires (std::convertible_to<T2, value_type>) {
+			MATHLBR_ASSERT_SIZE_MISMATCH(other.size(), Size);
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(other.size());
+
 			std::copy(std::begin(other._vector), std::end(other._vector),
 				std::begin(_vector));
+
+			VALUE_INITIALIZE_REMAINING_ELEMENTS(other.size(), _vector.size());
 		}
 
 		// Currently useless; keep for future changes of the allowed types.
 		template<typename T2, size_type Size2>
-		constexpr vector(vector<T2, Size2>&& other) /*noexcept (std::is_nothrow_move_constructible_v<T>)*/
-		requires (Size2 <= Size) {
+		constexpr vector(vector<T2, Size2>&& other) noexcept (std::is_nothrow_move_constructible_v<T>)
+		requires (std::convertible_to<T2, value_type>) {
+			MATHLBR_ASSERT_SIZE_MISMATCH(other.size(), Size);
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(other.size());
+
 			std::move(std::begin(other._vector), std::end(other._vector),
 				std::begin(_vector));
+
+			VALUE_INITIALIZE_REMAINING_ELEMENTS(other.size(), _vector.size());
 		}
+
 
 	private:
-
 		template<typename Type>
-		constexpr auto get_random(Type lower, Type higher) {
+		Type get_random(Type lower, Type higher) {
 			static std::mt19937 mt(std::random_device{}());
 			static std::uniform_real_distribution<double> un{ static_cast<double>(lower),
-			static_cast<double>(higher) };
+				static_cast<double>(higher) };
 
-			return un(mt);
+			return static_cast<Type>(un(mt));
 		}
 
-		constexpr static bool is_near_zero(double val, double epsilon) {
-			return val >= 0 && val <= std::abs(epsilon);
-		}
+
 
 	public:
+		explicit vector(value_type lower, value_type higher, size_type count = 1) 
+		requires (!Concepts::is_complex<T>::value) {
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(count);
 
-		constexpr explicit vector(T lower, T higher) {
-			for (size_type i = 0; i < Size; ++i) {
+			for (size_type i = 0; i < size(); ++i) {
 				_vector[i] = get_random(lower, higher);
 			}
 		}
 
-		// Initialize the complex vector with random initial real and imaginary values
-		constexpr explicit vector(long lower, long higher)
-		requires (is_complex<T>::value) {
-			using Tp = typename T::value_type;
+		constexpr explicit vector(complex_internal_value_type<value_type> lower, complex_internal_value_type<value_type> higher,
+			size_type count = 1)
+		requires (Concepts::is_complex<T>::value) {
+			MATHLBR_VECTOR_INIT_IF_DYNAMIC(count);
 
-			for (size_type i = 0; i < Size; ++i) {
-				_vector[i] = { get_random<Tp>(lower, higher),
-				get_random<Tp>(lower, higher) };
+			using Tp = typename T::value_type;
+			for (size_type i = 0; i < size(); ++i) {
+				_vector[i] = { 
+					get_random<Tp>(lower, higher),
+					get_random<Tp>(lower, higher) 
+				};
 			}
 		}
 
+	
 		constexpr vector(const vector& other) = default;
-		constexpr vector(vector&& other) /*noexcept*/ = default;
-		constexpr vector& operator=(vector&& other) /*noexcept*/ = default;
+		constexpr vector(vector&& other) noexcept = default;
+		constexpr vector& operator=(vector&& other) noexcept = default;
 		constexpr vector& operator=(const vector& other) = default;
 
 
-		template<typename Function>
-		constexpr vector apply_foreach(const Function& function)
-		noexcept(noexcept(function)) {
-
-			for (size_type i{}; i < Size; ++i) {
-				function(_vector[i]);
-			}
-			return *this;
-		}
-
-		constexpr const T& operator[] (size_type index) const noexcept {
+		constexpr const value_type& operator[] (size_type index) const noexcept {
 			return _vector[index];
 		}
 
-		constexpr T& operator[] (size_type index) noexcept {
+		constexpr value_type& operator[] (size_type index) noexcept {
 			return _vector[index];
 		}
 
-		constexpr const T& get_x() const noexcept {
+		constexpr const value_type& get_x() const noexcept {
 			return _vector[0];
 		}
 
-		constexpr const T& get_y() const noexcept
-			requires (Size > 1) {
+		constexpr const value_type& get_y() const noexcept {
 			return _vector[1];
 		}
 
-		constexpr const T& get_z() const noexcept
-			requires (Size > 2) {
+		constexpr const value_type& get_z() const noexcept {
 			return _vector[2];
 		}
 
-		constexpr const T& get_w() const noexcept
-			requires (Size > 3) {
+		constexpr const value_type& get_w() const noexcept {
 			return _vector[3];
 		}
 
 		// Addition operations
-		template<typename T2>
-		constexpr vector& operator+=(const vector<T2, Size>& rhs) {
-			STATICASSERT_COMPLEX_DIFFTYPES(T, T2);
+		template<size_type Sz2>
+		constexpr vector& operator+=(const vector<T, Sz2>& rhs) {
 
-			for (size_type i = 0; const auto & element : rhs._vector) {
-				_vector[i++] += element;
+			size_type min_size = std::min(size(), rhs.size());
+			for (size_type i = 0; i < min_size; ++i) {
+				_vector[i] += rhs[i];
 			}
 
 			return *this;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& operator+=(T2 val) {
 			std::for_each(std::begin(_vector), std::end(_vector),
-				[val](T& current) {
+				[val](value_type& current) {
 					current += val;
 				});
 
 			return *this;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator+(vector lhs, T2 val) {
 			return lhs += val;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator+(T2 val, vector lhs) {
 			return lhs += val;
 		}
 
-		template<typename T2>
-		friend constexpr vector operator+(vector lhs, const vector<T2, Size>& rhs) {
+		template<size_type Size2>
+		friend constexpr vector operator+(vector lhs, const vector<T, Size2>& rhs) {
 			return lhs += rhs;
 		}
 
@@ -267,20 +469,19 @@ namespace MathLbr {
 		}
 
 
-		// Substraction operations
+	// Substraction operations
 	private:
-		template<typename T2>
-		constexpr vector& substract(const vector<T2, Size>& rhs) {
-			STATICASSERT_COMPLEX_DIFFTYPES(T, T2);
+		template<size_type Size2>
+		constexpr vector& substract(const vector<T, Size2>& rhs) {
 
-			for (size_type i = 0; const auto & element : rhs._vector) {
-				_vector[i++] -= element;
+			size_type min_size = std::min(size(), rhs.size());
+			for (size_type i = 0; i < min_size; ++i) {
+				_vector[i] -= rhs[i];
 			}
-
 			return *this;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& substract(T2 val) {
 			std::for_each(std::begin(_vector), std::end(_vector),
 				[val](auto& current) {
@@ -291,42 +492,42 @@ namespace MathLbr {
 		}
 
 	public:
-		template<typename T2>
-		constexpr vector& operator-=(const vector<T2, Size>& rhs) {
+		template<size_type Size2>
+		constexpr vector& operator-=(const vector<T, Size2>& rhs) {
 			return substract(rhs);
 		}
 
-		template<typename T2>
+		template<size_type Size2>
 		[[deprecated("substracting vector of type unsigned might cause issues!")]]
-		constexpr vector& operator-=(const vector<T2, Size>& rhs)
-			requires std::is_unsigned<T>::value{
+		constexpr vector& operator-=(const vector<T, Size2>& rhs)
+		requires std::is_unsigned<T>::value{
 				return substract(rhs);
 		}
 
-		template<typename T2>
-		friend constexpr vector operator-(vector lhs, const vector<T2, Size>& rhs) {
+		template<size_type Size2>
+		friend constexpr vector operator-(vector lhs, const vector<T, Size2>& rhs) {
 			return lhs -= rhs;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& operator-=(T2 val) {
 			return substract(val);
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		[[deprecated("substracting from an unsigned vector might cause issues!")]]
 		constexpr vector& operator-=(T2 val)
-			requires std::is_unsigned<T>::value{
+		requires std::is_unsigned<T>::value{
 				return substract(val);
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator-(vector lhs, T2 val) {
 			return lhs -= val;
 		}
 
 	private:
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& lambda_multiplicator(T2 lambda) {
 			std::for_each(begin(), end(), [lambda](auto& current) {
 				current *= lambda;
@@ -337,40 +538,39 @@ namespace MathLbr {
 
 	public:
 		// Multiplication with a Lambda - Scalar multiplication
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& operator*=(T2 lambda) {
 			return lambda_multiplicator(lambda);
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		[[deprecated("multiplying vector of type unsigned might cause issues!")]]
 		constexpr vector& operator*=(T2 lambda)
-		requires std::is_unsigned<T>::value{
-				return lambda_multiplicator(lambda);
+		requires std::is_unsigned<T>::value {
+			return lambda_multiplicator(lambda);
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator*(vector lhs, T2 lambda) {
 			return lhs *= lambda;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator*(T2 lambda, vector lhs) {
 			return lhs *= lambda;
 		}
 
 
-		// Cross product
 	private:
-		template<typename T2>
-		constexpr vector& cross_product_internal(const vector<T2, Size>& rhs)
-		requires (Size == 3
-		and std::is_convertible<T2, value_type>::value) {
+		constexpr vector& cross_product_impl(const vector& rhs) {
+			if constexpr (!Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				static_assert(Size == 3, "cross product only accepts 3D vectors!");
+			}
+			else assert(size() == rhs.size() and rhs.size() == 3);
+
 			vector temp{ *this };
 
-			if constexpr (is_complex<T>::value) {
-				STATICASSERT_COMPLEX_DIFFTYPES(T, T2);
-
+			if constexpr (Concepts::is_complex<value_type>::value) {
 				// The cross product for complex vectors has the same formulas as a cross product in R3, with the only
 				// difference being that the final step is taking the complex conjugates of the results.
 				_vector[0] = std::conj((temp[1] * rhs[2] - temp[2] * rhs[1]));
@@ -378,35 +578,27 @@ namespace MathLbr {
 				_vector[2] = std::conj((temp[0] * rhs[1] - temp[1] * rhs[0]));
 				return *this;
 			}
-
 			_vector[0] = temp[1] * rhs[2] - temp[2] * rhs[1];
 			_vector[1] = temp[2] * rhs[0] - temp[0] * rhs[2];
 			_vector[2] = temp[0] * rhs[1] - temp[1] * rhs[0];
 			return *this;
 		}
 
+
 	public:
-		template<typename T2>
-		constexpr vector& cross_product(const vector<T2, Size>& rhs) {
+		constexpr vector& cross_product(const vector& rhs) {
+			return cross_product_impl(rhs);
+		}
+
+
+		[[deprecated("Multiplication on two vectors of type unsigned might cause issues!")]]
+		constexpr vector& cross_product(const vector& rhs)
+		requires std::is_unsigned<value_type>::value {
 			return cross_product_internal(rhs);
 		}
 
-
-		template<typename T2>
-		[[deprecated("Multiplication on two vectors of type unsigned might cause issues!")]]
-		constexpr vector& cross_product(const vector<T2, Size>& rhs)
-		requires std::is_unsigned<T>::value{
-				return cross_product_interna(rhs);
-		}
-
-			// Not in-place
-			template<typename T2>
-		friend constexpr vector cross_product(vector lhs, const vector<T2, Size>& rhs) {
-			return lhs.cross_product_internal(rhs);
-		}
-
 		// Division with a constant/lambda - for precision and correctness, use multiplication instead
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& operator/=(T2 lambda) {
 			ASSERT_DIV_BYZERO(lambda);
 
@@ -418,16 +610,16 @@ namespace MathLbr {
 			return *this;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		friend constexpr vector operator/(vector lhs, T2 lambda) {
 			return lhs /= lambda;
 		}
 
-		template<underlying_vector_type T2>
+		template<Concepts::underlying_vector_type T2>
 		constexpr vector& operator%=(T2 lambda)
 		requires (std::is_integral_v<T>
 		and std::is_integral_v<T2>
-		and not is_complex<T>::value) {
+		and not Concepts::is_complex<T>::value) {
 			ASSERT_DIV_BYZERO(lambda);
 
 			std::for_each(std::begin(_vector), std::end(_vector),
@@ -438,67 +630,66 @@ namespace MathLbr {
 			return *this;
 		}
 
+		template<Concepts::underlying_vector_type T2>
+		friend constexpr vector operator%(vector lhs, T2 lambda) {
+			return lhs %= lambda;
+		}
+
 
 		constexpr void reset() noexcept {
 			std::fill(std::begin(_vector), std::end(_vector), T{});
 		}
-
-		template<underlying_vector_type T1>
-		constexpr auto inner_product(const vector<T1, Size>& other) const {
+	
+	private:
+		constexpr vector inner_product(const vector& other) const {
 			return std::inner_product(std::begin(_vector), std::end(_vector),
 				std::begin(other._vector), T{});
 		}
-
-		friend constexpr auto scalar_triple_product(const vector& first,
-			const vector& other2, const vector& other3)
-		requires (Size == 3
-		and not is_complex<T>::value) {
-			vector temp{ first };
-			return other3.inner_product(temp.cross_product(other2));
-		}
-
-		// Not in place
-		friend constexpr vector vector_triple_product(const vector& first, const vector& other2,
-			const vector& other3)
-		requires (Size == 3
-		and not is_complex<T>::value) {
-			vector temp{ first };
-			vector temp3{ other3 };
-			return temp3.cross_product(temp.cross_product(other2));
-		}
-
-		friend constexpr bool are_coplanar(const vector& first, const vector& other2,
-			const vector& other3, double epsilon = 1E-6)
-		requires (Size == 3
-		and not is_complex<T>::value) {
-			auto result = scalar_triple_product(first, other2, other3);
-			return is_near_zero(result, epsilon);
-		}
+		
+	public:
 
 
-		// Calculates projection of other to this, then stores the result in this (inplace)
-		template<typename T2>
-		constexpr vector& vector_projection_from(const vector<T2, Size>& other) {
-			T denominator = inner_product(*this);
+		// Calculates projection of other to this, then stores the result in this 
+		constexpr vector& vector_projection_from(const vector& other) 
+		requires (not Concepts::is_complex<value_type>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(size() == other.size());
+			}
+
+			T denominator = Vector::inner_product(*this, *this);
 			// a null vector results in a scalar product of 0, thus a denominator of 0
 			// todo: decide whether this is the appropriate way to proceed, or whether another result can be given (eg. using limits)
 			ASSERT_DIV_BYZERO(denominator);
-			*this *= (inner_product(other) / denominator);
+			*this *= (Vector::inner_product(other, *this) / denominator);
 
+			return *this;
+		}
+
+		// Calculates projection of other to this for complex types, storing result in this
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
+		constexpr vector& vector_projection_from(const vector& other) 
+		requires (Concepts::is_complex<value_type>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(size() == other.size());
+			}
+			T denominator = Vector::inner_product<definition_type>(*this, *this);
+
+			ASSERT_DIV_BYZERO(denominator);
+			*this *= Vector::inner_product<definition_type>(other, *this);
 			return *this;
 		}
 
 		// Return direction of a 2D vector. The vector components must be cartesian coordinates. x will return (angle)x, 
 		// y returns (angle)y. 
-		constexpr double direction_radiants_y() const
-		requires (Size == 2
-		and not is_complex<T>::value) {
+		constexpr double direction_radiants_y() const 
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 2);
 			return std::atan2(_vector[0], _vector[1]); // (x / y)
 		}
 
 		constexpr double direction_radiants_x() const
-		requires (Size == 2
-		and not is_complex<T>::value) {
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 2);
 			return std::atan2(_vector[1], _vector[0]); // (y / x)
 		}
 
@@ -511,43 +702,33 @@ namespace MathLbr {
 		}
 
 
-		// Direction cosines of 3D vectors.
 		constexpr double direction_cosine(Cos type) const
-		requires (Size == 3
-		and not is_complex<T>::value) {
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
 			double denominator = magnitude();
 			ASSERT_DIV_BYZERO(denominator);
 
-			return static_cast<double>(_vector[static_cast<size_type>(type)] / denominator);
-		}
-
-		// Direction cosines of N-D vectors (with indexes)
-		constexpr double direction_cosine(std::size_t index) const
-		requires (not is_complex<T>::value) {
-			double denominator = magnitude();
-			ASSERT_DIV_BYZERO(denominator);
-
-			return static_cast<double>(_vector[index] / denominator);
+			return static_cast<double>(_vector[type] / denominator);
 		}
 
 		constexpr double direction_angle(Cos type) const
-		requires (Size == 2
-		and not is_complex<T>::value) {
+		requires (not Concepts::is_complex<T>::value) {
 			return std::acos(direction_cosine(type));
 		}
 
 		constexpr vector& normalize() {
 			double denominator = magnitude();
 			ASSERT_DIV_BYZERO(denominator);
-			*this *= (1 / denominator);
+			*this *= static_cast<T>(1 / magnitude());
 			return *this;
 		}
 
-		// Return || magnitude || of this vector
-		constexpr double magnitude() const {
+		// Returns || magnitude || of this vector
+		constexpr double magnitude() const 
+		requires (not Concepts::is_complex<value_type>::value) {
 			double sum = std::accumulate(begin(), end(), T{},
 				[](auto internal_sum, const auto& element) {
-					return internal_sum + std::pow(element, 2);
+					return static_cast<value_type>(internal_sum + std::pow(element, 2));
 				});
 
 			return std::sqrt(sum);
@@ -555,126 +736,151 @@ namespace MathLbr {
 
 		// Computes the norm for a complex vector
 		constexpr double magnitude() const
-		requires (is_complex<T>::value) {
+		requires (Concepts::is_complex<value_type>::value) {
 			// The norm of a complex vector has a different definition than that of a vector with R components.
-			double sum = std::accumulate(std::begin(_vector), std::end(_vector), 0,
+			double sum = std::accumulate(std::begin(_vector), std::end(_vector), complex_internal_value_type<T>{},
 				[](auto sum, const auto& element) {
-					return sum + std::pow(std::abs(element.real()), 2)
-						+ std::pow(std::abs(element.imag()), 2);
+					return static_cast<complex_internal_value_type<value_type>>(sum + std::pow(std::abs(element.real()), 2)
+						+ std::pow(std::abs(element.imag()), 2));
 				});
 
 			return std::sqrt(sum);
 		}
 
-		// Vector Parallelism Condition
-		// 3 dimensions case: checks whether the cross product is near 0
-		template<typename T2>
-		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
-		requires (Size == 3
-		and not is_complex<T>::value
-			and not is_complex<T2>::value)
-		{
-			vector temp_cross = first;
-			vector temp = temp_cross.cross_product(other);
-			// Two vectors are parallel in 3D only if their cross product result is near zero.
-			return temp[0] >= 0 && temp[0] <= std::abs(epsilon)
-				&& temp[1] >= 0 && temp[1] <= std::abs(epsilon)
-				&& temp[2] >= 0 && temp[2] <= std::abs(epsilon);
-		}
-
-
-		// Other dimensions: scalar product method. Parallelism condition if result's near 0 (approx 1E-6)
-		template<typename T2>
-		friend constexpr bool are_parallel(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
-		requires (not is_complex<T>::value
-		and not is_complex<T2>::value) {
-			auto sum_and_pow = [](auto sum, const auto& element) {
-				return sum + std::pow(element, 2);
-			};
-
-			T inner_product = first.inner_product(other);
-			double lhs = std::pow(inner_product, 2);
-			double rhs1 = std::accumulate(std::begin(first._vector), std::end(first._vector),
-				0, sum_and_pow);
-			double rhs2 = std::accumulate(std::begin(other._vector), std::end(other._vector),
-				0, sum_and_pow);
-			return is_near_zero(std::abs(rhs1 * rhs2 - lhs), epsilon);
-		}
-
-		// Perpendicular conditions
-		template<typename T2>
-		friend constexpr bool are_perpendicular(const vector& first, const vector<T2, Size>& other, double epsilon = 1E-6)
-		requires (not is_complex<T>::value
-		and not is_complex<T2>::value) {
-			auto inner_product = first.inner_product(other);
-			return is_near_zero(inner_product, epsilon);
-		}
+		
 
 		// Angle between two vectors (in radiants)
-		// Todo: Add support for complex vectors
-		template<typename T2>
-		constexpr double angle_between_radiants(const vector<T2, Size>& other)
-			requires (not is_complex<T>::value) {
-			double inner_prod = inner_product(other);
+		constexpr double angle_between_radiants(const vector& other)
+		requires (not Concepts::is_complex<value_type>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(size() == other.size());
+			}
 			double magnitude_mult = magnitude() * other.magnitude();
 			ASSERT_DIV_BYZERO(magnitude_mult);
 
-			return std::acos(inner_prod / magnitude_mult);
+			return std::acos(Vector::inner_product(*this, other) / magnitude_mult);
 		}
 
-		template<typename T2>
-		constexpr double angle_between_degrees(const vector<T2, Size>& other) {
+		constexpr double angle_between_degrees(const vector& other) 
+		requires (not Concepts::is_complex<value_type>::value) {
 			return angle_between_radiants(other) * 180 / std::numbers::pi;
 		}
 
+		// Angle between complex vectors
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
+		constexpr double angle_between_radiants(const vector& other) 
+		requires (Concepts::is_complex<value_type>::value) {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				assert(size() == other.size());
+			}
+			double magnitude_mult = magnitude() * other.magnitude();
+			ASSERT_DIV_BYZERO(magnitude_mult);
+			return std::acos(Vector::inner_product<definition_type>(*this, other).real() / magnitude_mult);
+		}
+
+
+		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
+		constexpr double angle_between_degrees(const vector& other) 
+		requires (Concepts::is_complex<value_type>::value) {
+			return angle_between_radiants<definition_type>(other) * 
+				static_cast<complex_internal_value_type<value_type>>(180) / std::numbers::pi;
+		}
+
 		constexpr bool is_empty() const {
-			return (Size == 0 || std::all_of(std::begin(_vector), std::end(_vector),
+			return (size() == 0 || std::all_of(std::begin(_vector), std::end(_vector),
 				[](value_type i) { return i == value_type{}; }));
 		}
 
-		auto operator<=>(const vector&) const = default;
-		
-		// Convertsions: cartesian --> other coordinate system (as an array)
-		// Conversions: cartesian vector to another coordinate system -- returns array
-		constexpr auto to_polar_array()
-		-> std::array<T, 2>
-		requires (not is_complex<T>::value
-		and Size == 2) {
+		constexpr auto operator<=>(const vector&) const = default;
+
+		// Conversions: cartesian --> other coordinate system
+		constexpr underlying_container to_polar_coords()
+		requires (not Concepts::is_complex<value_type>::value) {
+			assert(size() == 2);
 			ASSERT_DIV_BYZERO(_vector[0]);
-			return std::array<T, 2>{
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				return std::vector<value_type>{
+					std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
+					std::atan(_vector[1] / _vector[0])
+				};
+			} 
+			else return std::array<value_type, 2>{
 				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
-				std::atan(_vector[1] / _vector[0]) // y / x
+				std::atan(_vector[1] / _vector[0]) 
 			};
 		}
 
-		constexpr auto to_spherical_array()
-		-> std::array<T, 3>
-		requires (not is_complex<T>::value
-		and Size == 3) {
+		constexpr underlying_container to_spherical_coords()
+		requires (not Concepts::is_complex<value_type>::value) {
+			assert(size() == 3);
+
 			auto res = std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2) +
 				std::pow(_vector[2], 2));
 			ASSERT_DIV_BYZERO(res);
 			ASSERT_DIV_BYZERO(_vector[0]);
 
 			// [0] = alpha, [1] = beta, [3] = theta
-			return std::array<T, 3>{
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				return std::vector<value_type>{
+					res,
+					std::atan(_vector[1] / _vector[0]),
+					std::acos(_vector[2] / res)
+				};
+			} 
+			else return std::array<value_type, 3>{
 				res,
 				std::atan(_vector[1] / _vector[0]),
 				std::acos(_vector[2] / res)
 			};
 		}
 
-		constexpr auto to_cylindrical_array()
-		-> std::array<T, 3>
-		requires (not is_complex<T>::value
-		and Size == 3) {
-			ASSERT_DIV_BYZERO(_vector[0])
+		constexpr underlying_container to_cylindrical_coords()
+		requires (not Concepts::is_complex<value_type>::value) {
+			assert(size() == 3);
+			ASSERT_DIV_BYZERO(_vector[0]);
 
-			return std::array<T, 3> {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				return std::vector<value_type> {
+					std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
+					std::atan(_vector[1] / _vector[0]),
+					_vector[2]
+				};
+			} 
+			else return std::array<T, 3> {
 				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
 				std::atan(_vector[1] / _vector[0]),
 				_vector[2]
 			};
+		}
+
+		// Polar coordinates --> cartesian vector
+		// radius in radiants
+		constexpr void from_polar(T r, T radius)
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 2);
+
+			_vector[0] = r * std::cos(radius);
+			_vector[1] = r * std::sin(radius);	
+		}
+
+		// Cylindrical coordinates --> cartesian vector
+		constexpr void from_cylindrical(T magnitude, T radius, T z)
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
+
+			_vector[0] = magnitude * std::cos(radius);
+			_vector[1] = magnitude * std::sin(radius);
+			_vector[2] = z;
+		}
+
+		// Spherical coordinates --> cartesian vector
+		constexpr void from_spherical(T alpha, T beta, T theta)
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
+
+			_vector[0] = alpha * std::sin(theta) * std::cos(beta);
+			_vector[1] = alpha * std::sin(theta) * std::sin(beta);
+			_vector[2] = alpha * std::cos(theta);
 		}
 
 		friend std::ostream& operator<< (std::ostream& stream, const vector& rhs) {
@@ -685,53 +891,65 @@ namespace MathLbr {
 
 			return stream;
 		}
-		
-		 // Todo: Remove rotations and simplify calculus when Math::Matrix is available
-		constexpr void rotate_around_z(T rotation_angle) 
-		requires (Size == 3
-		and not is_complex<T>::value)
-		{
-		    auto cos = std::cos(rotation_angle);
-		    auto sin = std::sin(rotation_angle);
-		    T tempX = _vector[0] * cos - 
-			_vector[1] * sin;
-		    T tempY = _vector[0] * sin +
-			_vector[1] * cos;
-		    _vector[0] = tempX;
-		    _vector[1] = tempY;
-		    // _vector[2] remains the same
+
+		// Todo: Remove rotations and simplify calculus when Math::Matrix is available
+		constexpr void rotate_around_z(T rotation_angle)
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
+
+			auto cos = std::cos(rotation_angle);
+			auto sin = std::sin(rotation_angle);
+			T tempX = _vector[0] * cos -
+				_vector[1] * sin;
+			T tempY = _vector[0] * sin +
+				_vector[1] * cos;
+			_vector[0] = tempX;
+			_vector[1] = tempY;
 		}
 
 		constexpr void rotate_around_y(T rotation_angle)
-		requires (Size == 3
-		and not is_complex<T>::value) {
-		    auto cos = std::cos(rotation_angle);
-		    auto sin = std::sin(rotation_angle);
-		    T tempX = _vector[0] * cos +
-			_vector[2] * sin;
-		    T tempZ = -(_vector[0]) * sin +
-			_vector[2] * cos;
-		    _vector[0] = tempX;
-		    // _vector[1] remains the same
-		    _vector[2] = tempZ;
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
+
+			auto cos = std::cos(rotation_angle);
+			auto sin = std::sin(rotation_angle);
+			T tempX = _vector[0] * cos +
+				_vector[2] * sin;
+			T tempZ = -(_vector[0]) * sin +
+				_vector[2] * cos;
+			_vector[0] = tempX;
+			_vector[2] = tempZ;
 		}
 
 		constexpr void rotate_around_x(T rotation_angle)
-		requires (Size == 3
-		and not is_complex<T>::value) {
-		    auto cos = std::cos(rotation_angle);
-		    auto sin = std::sin(rotation_angle);
-		    T tempY = _vector[1] * cos -
-			_vector[2] * sin;
-		    T tempZ = _vector[1] * sin +
-			_vector[2] * cos;
-		    _vector[1] = tempY;
-		    _vector[2] = tempZ;
+		requires (not Concepts::is_complex<T>::value) {
+			assert(size() == 3);
+
+			auto cos = std::cos(rotation_angle);
+			auto sin = std::sin(rotation_angle);
+			T tempY = _vector[1] * cos -
+				_vector[2] * sin;
+			T tempZ = _vector[1] * sin +
+				_vector[2] * cos;
+			_vector[1] = tempY;
+			_vector[2] = tempZ;
+		}
+
+		template<typename Function>
+		constexpr vector apply_foreach(const Function& function)
+			noexcept(noexcept(function)) {
+
+			for (size_type i{}; i < size(); ++i) {
+				function(_vector[i]);
+			}
+			return *this;
 		}
 
 
-		consteval value_type size() const noexcept {
-			return Size;
+		constexpr size_type size() const noexcept {
+			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+				return _vector.size();
+			} else return Size;
 		}
 
 		constexpr auto begin() const noexcept {
@@ -741,7 +959,7 @@ namespace MathLbr {
 		constexpr auto end() const noexcept {
 			return std::end(_vector);
 		}
-
+		
 		constexpr auto begin() noexcept {
 			return std::begin(_vector);
 		}
@@ -750,75 +968,23 @@ namespace MathLbr {
 			return std::end(_vector);
 		}
 
+		constexpr void add(value_type new_element) 
+		requires (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+			_vector.push_back(new_element);
+		}
+
+		constexpr std::vector<T>& underlying_data() 
+		requires (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
+			return _vector;
+		}
+
 	};
 
-
-
-	// Not in place counterparts
-	template<underlying_vector_type T, std::size_t Size, typename T2>
-	constexpr auto lambda_multiplication(const vector<T, Size>& vec, T2 lambda) {
-		using Type = decltype(std::declval<T>()* std::declval<T2>());
-		vector<Type, Size> temp(vec);
-
-		return temp.lambda_multiplicator(lambda);
-	}
-
-
-	template<typename T, std::size_t Size>
-	constexpr vector<T, Size> normalize(const vector<T, Size>& other) {
-		vector<T, Size> copy(other);
-		copy.normalize();
-
-		return copy;
-	}
 	
-	// Polar coordinates --> cartesian vector
-	// radius in radiants
-	template<typename T>
-	constexpr auto init_from_polar(T r, T radius)
-	->vector<T, 2>
-	requires (not is_complex<T>::value) {
-		return vector{ {
-			r * std::cos(radius),
-			r * std::sin(radius)
-		} };
-	}
-
-	// Cylindrical coordinates --> cartesian vector
-	template<typename T>
-	constexpr auto init_from_cylindrical(T magnitude, T radius, T z)
-	->vector<T, 3>
-	requires (not is_complex<T>::value) {
-		return vector{ {
-			magnitude * std::cos(radius),
-			magnitude * std::sin(radius),
-			z
-		} };
-	}
-
-	// Spherical coordinates --> cartesian vector
-	template<typename T>
-	constexpr auto init_from_spherical(T alpha, T beta, T theta)
-	->vector<T, 3>
-	requires (not is_complex<T>::value) {
-	return vector{ {
-			alpha * std::sin(theta) * std::cos(beta),
-			alpha * std::sin(theta) * std::sin(beta),
-			alpha * std::cos(theta)
-		} };
-	}
-
-
-
-	// Deduction guides
-	// [1] normal constructor calls
-	template<typename T2, std::same_as<T2>...Args>
-	vector(T2, Args...)->vector<T2, sizeof...(Args) + 1>;
-
-	// [2] parameter pack constructor calls
+	// Deduction guide
 	template<typename T, std::size_t Sz>
 	vector(const T(&)[Sz])->vector<T, Sz>;
-
 }
+
 
 #endif
