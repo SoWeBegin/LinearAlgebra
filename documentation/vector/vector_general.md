@@ -31,5 +31,23 @@ Passing a size through a template argument means that `MathLbr::vector` will int
 Omitting this argument means that `MathLbr::vector` will internally use `std::vector<T>` to store its elements.</br>
 *Note*: Some constructors might need different parameters, depending on what container is used to store the elements internally. (see specific references)
 
-
+## Aliases
+The vector class contains the usual, standard aliases:
+```cpp
+		using size_type = std::size_t;
+		using value_type = T;
+		using pointer_type = T*;
+		using reference_type = T&;
+		using const_pointer_type = const T*;
+		using const_reference_type = const T&;
+```
+Additional aliases are:
+```cpp
+using underlying_container = std::conditional_t<Concepts::dynamic_extent_enabled<Size, dynamic_extent>, std::vector<T>, std::array<T, Size>>;
+template<typename _T>
+using complex_internal_value_type = typename Concepts::is_complex<_T>::value_type;
+```
+with 
+- `underlying_container`: alias of the currently used underlying container (either `std::array` or `std::vector`),
+- `complex_internal_value_type`: useful for the library itself, contains the underlying type of a passed `std::complex`.
 For all the other details, see the member function page.
