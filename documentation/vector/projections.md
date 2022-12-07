@@ -1,16 +1,15 @@
 # Projection
 
 1) ```cpp
-   template<typename T2>
-   constexpr vector& vector_projection_from(const vector<T2, Size>& other);
+   constexpr vector& vector_projection_from(const vector& other);
    ```
 2) ```cpp
    template<typename T, std::size_t Size>
    constexpr vector<T, Size> projection(vector<T, Size> first, const vector<T, Size>& other);
    ```
 3) ```cpp
-   template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT, typename T2>
-   constexpr vector& vector_projection_from(const vector<T2, Size>& other) 
+   template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
+   constexpr vector& vector_projection_from(const vector& other) 
    ```
 4) ```cpp
    template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT, typename T, std::size_t Size>
