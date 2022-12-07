@@ -1,5 +1,6 @@
 # LinearAlgebra
 (yet) Small C++20 library about linear algebra.
+MathLbr is a C++20 header only library about linear algebra. The goal is to provide the most utilities possible, with almost complete support for complex operations (through `std::complex`) as well. 
 
 # MathLbr::vector
 <a href="https://github.com/SoWeBegin/LinearAlgebra/blob/main/documentation/vector/vector_general.md">Brief Introduction</a></br>
