@@ -21,6 +21,7 @@ The following function allow to convert from cartesian coordinates to other coor
    ```
 <br>
 
+**Note**: None of the functions above currently work with an underlying type `std::complex`.
 1) Converts the current vector's elements coordinates to polar coordinates, and returns the new coordinates in either a `std::vector` or `std::array`, depending on which underlying container is currently used.<br>
 An assert is performed to check whether the current vector's size equals 2.
 2) Same as 1, but converts the cartesian coordinates to spherical coordinates. The assert in this case checks whether the size equals 3.
