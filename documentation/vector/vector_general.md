@@ -15,6 +15,8 @@ Most member functions of this class are `constexpr` (see specific references).
 int main() {
   MathLbr::vector<double> a{{2,3,4}}; // OK, internal container is std::vector since no template size was passed
   MathLbr::vector<int, 3>> b{{2,4,3}}; // OK, internal container is std::array since a template size was passed
+}
+```
 
 ## Template parameters
 **T**: The type of the elements. Currently, T must be only of the following:
