@@ -33,6 +33,9 @@
 # MathLbr::matrix
 ... Incoming
 
+## Bugs and reports
+Let me know if you find any bugs or have anything to report (new features as well)!
+
 ## Resources
 https://en.wikipedia.org/wiki/Dot_product<br>
 https://proofwiki.org/wiki/Definition:Dot_Product/Complex<br>
