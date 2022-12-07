@@ -3,7 +3,7 @@
 ## operators+ [sum]
 1) ```cpp
    template<typename T2, size_type Size2>
-   constexpr vector& operator+=(const vector<T2, Size2>& rhs);
+   constexpr vector& operator+=(const vector& rhs);
    ```
 2) ```cpp
    template<Concepts::underlying_vector_type T2>
@@ -19,7 +19,7 @@
    ```
 5) ```cpp
    template<typename T2, size_type Size2>
-   friend constexpr vector operator+(vector lhs, const vector<T2, Size2>& rhs)
+   friend constexpr vector operator+(vector lhs, const vector& rhs)
    ```
 <br>
 
