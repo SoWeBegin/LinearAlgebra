@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include "pch.h"
 #include "../LinearAlgebraLatest/vector.h"
 
 TEST(Constructors, Contructor1) {
@@ -273,7 +273,7 @@ TEST(NonModifiers, angleBetween) {
 	MathLbr::vector<double> a{ {1.7, 26} };
 	MathLbr::vector<double> bb{ {5.5, 6.6} };
 	EXPECT_NEAR(a.angle_between_degrees(bb), 36.065, 1E-3);
-	EXPECT_NEAR(a.angle_between_radiants(bb), 0.6294, 1E-3);
+	EXPECT_NEAR(a.angle_between_radians(bb), 0.6294, 1E-3);
 
 	MathLbr::vector<std::complex<double>> b{ {{2,-2}} };
 	MathLbr::vector<std::complex<double>> c{ {{1, -sqrt(3)}} };
