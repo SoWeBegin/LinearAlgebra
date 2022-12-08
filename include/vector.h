@@ -1,4 +1,4 @@
-#ifndef VECTOR_MATH_MINILIBRARY
+	#ifndef VECTOR_MATH_MINILIBRARY
 #define VECTOR_MATH_MINILIBRARY
 
 #include "utility.h"
@@ -226,16 +226,16 @@ namespace MathLbr {
 
 
 		template<typename T, std::size_t Size>
-		constexpr vector<T, Size> projection(vector<T, Size> first, const vector<T, Size>& other)
+		constexpr vector<T, Size> projection(vector<T, Size> to, const vector<T, Size>& from)
 		requires (not Concepts::is_complex<T>::value) {
-			return first.vector_projection_from(other);
+			return to.vector_projection_from(from);
 		}
 
 		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT,
 		typename T, std::size_t Size>
-		constexpr vector<T, Size> projection(vector<T, Size> first, const vector<T, Size>& other)
+		constexpr vector<T, Size> projection(vector<T, Size> to, const vector<T, Size>& from)
 		requires (Concepts::is_complex<T>::value) {
-			return first.vector_projection_from<definition_type>(other);
+			return to.vector_projection_from<definition_type>(from);
 		}
 	}
 
@@ -358,7 +358,7 @@ namespace MathLbr {
 		template<typename Type>
 		Type get_random(Type lower, Type higher) {
 			static std::mt19937 mt(std::random_device{}());
-			static std::uniform_real_distribution<double> un{ static_cast<double>(lower),
+			std::uniform_real_distribution<double> un{ static_cast<double>(lower),
 				static_cast<double>(higher) };
 
 			return static_cast<Type>(un(mt));
@@ -405,19 +405,19 @@ namespace MathLbr {
 			return _vector[index];
 		}
 
-		constexpr const value_type& get_x() const noexcept {
+		constexpr const value_type& x() const noexcept {
 			return _vector[0];
 		}
 
-		constexpr const value_type& get_y() const noexcept {
+		constexpr const value_type& y() const noexcept {
 			return _vector[1];
 		}
 
-		constexpr const value_type& get_z() const noexcept {
+		constexpr const value_type& z() const noexcept {
 			return _vector[2];
 		}
 
-		constexpr const value_type& get_w() const noexcept {
+		constexpr const value_type& w() const noexcept {
 			return _vector[3];
 		}
 
@@ -650,55 +650,55 @@ namespace MathLbr {
 
 
 		// Calculates projection of other to this, then stores the result in this 
-		constexpr vector& vector_projection_from(const vector& other) 
+		constexpr vector& vector_projection_from(const vector& from) 
 		requires (not Concepts::is_complex<value_type>::value) {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
-				assert(size() == other.size());
+				assert(size() == from.size());
 			}
 
 			T denominator = Vector::inner_product(*this, *this);
 			// a null vector results in a scalar product of 0, thus a denominator of 0
 			// todo: decide whether this is the appropriate way to proceed, or whether another result can be given (eg. using limits)
 			ASSERT_DIV_BYZERO(denominator);
-			*this *= (Vector::inner_product(other, *this) / denominator);
+			*this *= (Vector::inner_product(from, *this) / denominator);
 
 			return *this;
 		}
 
 		// Calculates projection of other to this for complex types, storing result in this
 		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
-		constexpr vector& vector_projection_from(const vector& other) 
+		constexpr vector& vector_projection_from(const vector& from) 
 		requires (Concepts::is_complex<value_type>::value) {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
-				assert(size() == other.size());
+				assert(size() == from.size());
 			}
 			T denominator = Vector::inner_product<definition_type>(*this, *this);
 
 			ASSERT_DIV_BYZERO(denominator);
-			*this *= Vector::inner_product<definition_type>(other, *this);
+			*this *= Vector::inner_product<definition_type>(from, *this);
 			return *this;
 		}
 
 		// Return direction of a 2D vector. The vector components must be cartesian coordinates. x will return (angle)x, 
 		// y returns (angle)y. 
-		constexpr double direction_radiants_y() const 
+		constexpr double direction_radians_y() const 
 		requires (not Concepts::is_complex<T>::value) {
 			assert(size() == 2);
 			return std::atan2(_vector[0], _vector[1]); // (x / y)
 		}
 
-		constexpr double direction_radiants_x() const
+		constexpr double direction_radians_x() const
 		requires (not Concepts::is_complex<T>::value) {
 			assert(size() == 2);
 			return std::atan2(_vector[1], _vector[0]); // (y / x)
 		}
 
 		constexpr double direction_degrees_y() const {
-			return direction_radiants_y() * 180.0 / std::numbers::pi;
+			return direction_radians_y() * 180.0 / std::numbers::pi;
 		}
 
 		constexpr double direction_degrees_x() const {
-			return direction_radiants_x() * 180.0 / std::numbers::pi;
+			return direction_radians_x() * 180.0 / std::numbers::pi;
 		}
 
 
@@ -749,8 +749,8 @@ namespace MathLbr {
 
 		
 
-		// Angle between two vectors (in radiants)
-		constexpr double angle_between_radiants(const vector& other)
+		// Angle between two vectors (in radians)
+		constexpr double angle_between_radians(const vector& other)
 		requires (not Concepts::is_complex<value_type>::value) {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 				assert(size() == other.size());
@@ -763,12 +763,12 @@ namespace MathLbr {
 
 		constexpr double angle_between_degrees(const vector& other) 
 		requires (not Concepts::is_complex<value_type>::value) {
-			return angle_between_radiants(other) * 180 / std::numbers::pi;
+			return angle_between_radians(other) * 180 / std::numbers::pi;
 		}
 
 		// Angle between complex vectors
 		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
-		constexpr double angle_between_radiants(const vector& other) 
+		constexpr double angle_between_radians(const vector& other) 
 		requires (Concepts::is_complex<value_type>::value) {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 				assert(size() == other.size());
@@ -782,7 +782,7 @@ namespace MathLbr {
 		template<ComplexInnerProduct definition_type = ComplexInnerProduct::ANTILINEAR_FIRST_ARGUMENT>
 		constexpr double angle_between_degrees(const vector& other) 
 		requires (Concepts::is_complex<value_type>::value) {
-			return angle_between_radiants<definition_type>(other) * 
+			return angle_between_radians<definition_type>(other) * 
 				static_cast<complex_internal_value_type<value_type>>(180) / std::numbers::pi;
 		}
 
@@ -801,12 +801,12 @@ namespace MathLbr {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 				return std::vector<value_type>{
 					std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
-					std::atan(_vector[1] / _vector[0])
+					std::atan2(_vector[1], _vector[0])
 				};
 			} 
 			else return std::array<value_type, 2>{
 				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
-				std::atan(_vector[1] / _vector[0]) 
+				std::atan2(_vector[1] / _vector[0]) 
 			};
 		}
 
@@ -823,13 +823,13 @@ namespace MathLbr {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 				return std::vector<value_type>{
 					res,
-					std::atan(_vector[1] / _vector[0]),
+					std::atan2(_vector[1], _vector[0]),
 					std::acos(_vector[2] / res)
 				};
 			} 
 			else return std::array<value_type, 3>{
 				res,
-				std::atan(_vector[1] / _vector[0]),
+				std::atan2(_vector[1], _vector[0]),
 				std::acos(_vector[2] / res)
 			};
 		}
@@ -842,19 +842,19 @@ namespace MathLbr {
 			if constexpr (Concepts::dynamic_extent_enabled<Size, dynamic_extent>) {
 				return std::vector<value_type> {
 					std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
-					std::atan(_vector[1] / _vector[0]),
+					std::atan2(_vector[1], _vector[0]),
 					_vector[2]
 				};
 			} 
 			else return std::array<T, 3> {
 				std::sqrt(std::pow(_vector[0], 2) + std::pow(_vector[1], 2)),
-				std::atan(_vector[1] / _vector[0]),
+				std::atan2(_vector[1], _vector[0]),
 				_vector[2]
 			};
 		}
 
 		// Polar coordinates --> cartesian vector
-		// radius in radiants
+		// radius in radians
 		constexpr void from_polar(T r, T radius)
 		requires (not Concepts::is_complex<T>::value) {
 			assert(size() == 2);
@@ -980,11 +980,10 @@ namespace MathLbr {
 
 	};
 
-	
 	// Deduction guide
 	template<typename T, std::size_t Sz>
 	vector(const T(&)[Sz])->vector<T, Sz>;
-}
 
+}
 
 #endif
