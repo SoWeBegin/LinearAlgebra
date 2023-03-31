@@ -38,7 +38,7 @@
    ```
 <hr><br>
   
-1) **Default constructor**. Constructs an empty vector. This overload **only** exists if the underlying container used to store the elements is `std::array` (that is, if an explicit template argument Size was passed such as `MathLbr::vector<int, 3>`).
+1) **Default constructor**. Constructs an empty vector, as in by using `= default`.
 2) Contructs the container with each element initialized to `value`. This constructor effectively exists only if the underlying container is `std::array`, that is, if a size was passed as a second template parameter (such as `MathLbr::vector<int, 4>`).
 3) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
 4) Constructs the vector with the contents of the range [first, last].
