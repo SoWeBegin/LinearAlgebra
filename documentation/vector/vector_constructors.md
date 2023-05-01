@@ -3,7 +3,10 @@
    constexpr vector() = default;
    ```
 2. ```cpp
-   constexpr explicit vector(value_type value);
+   template<concepts::underlying_vector_type T2>
+   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(T2 value)
+   requires (concepts::dynamic_extent_disabled<Size, dynamic_extent>
+   and concepts::convertible_to_or_not_narrowing_conversion<T2, value_type>)  
    ```
 3. ```cpp
    constexpr explicit vector(size_type count);
@@ -40,8 +43,11 @@
   
 1) **Default constructor**. Constructs an empty vector, as in by using `= default`.
 2) Contructs the container with each element initialized to `value`. This constructor effectively exists only if the underlying container is `std::array`, that is, if a size was passed as a second template parameter (such as `MathLbr::vector<int, 4>`).
-3) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
-4) Constructs the vector with the contents of the range [first, last].
+The default behavior is that there must exist an implicit conversion sequence from T2 to T, where T is the type explicitly passed to the class template. If no such implicit conversion exists (that is, std::convertible_to<T2, T> fails) then a compilation error is thrown.
+By default behavior, this constructor is implicitly marked explicit as well.
+If ALLOW_IMPLICIT_CONVERSIONS is defined, then all narrowing conversions from T2 to T are disallowed, and this constructor is not marked explicit.
+4) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
+5) Constructs the vector with the contents of the range [first, last].
    <br> The type of the range must be convertible to the container's type (for example, a range of `std::complex` types cannot be used to initialize a vector of `int`s).
    <br>*Note:* For a non-dynamically allocated vector (that is, a vector created with an explicitly passed template size), an assert is performed to ensure that the container's   size is greater or equal than the size of the passed range (Size >= range size). Asserts might be disabled, refer to <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.
    If the total values passed are smaller than the container's size, and the underlying container is `std::array`, then the remaining elements are value-initialized such as `T{}`.
@@ -62,13 +68,26 @@ If the size of the passed array is smaller than the container's size, and if the
 #include "vector.h"
 #include <complex>
 
+void foo(const MathLbr::vector<int, 2>& v) {
+	for (auto i : v) std::cout << i << ' ';
+}
+
 int main() {
 	// Constructor (1)
 	MathLbr::vector<int, 6> a1; // Empty vector of explicit size 6 whose underlying type is std::array
 	MathLbr::vector<int> a11; // Empty vector whose underlying type is std::vector, since no explicit size was passed as the second template argument.
 
+
 	// Constructor (2)
-	MathLbr::vector<int, 3> a2(4); // Initializes the internal std::array with 3 values equal to 4.
+	MathLbr::vector<int, 2> v1(5); // All the elements are initialized to 5. 
+
+	MathLbr::vector<int, 2> v2(5.5); // The default behavior is that 5.5 is implicitly converted to an int, and all elements are initialized to 5.
+	// If ALLOW_IMPLICIT_CONVERSIONS is defined, then this fails to compile, because narrowing conversions are disallowed.
+
+	foo(5); // The default behavior disallows this since there constructor is marked explicit.
+	// If ALLOW_IMPLICIT_CONVERSIONS is defined, then this will compile, and a vector MathLbr::vector<int, 2> with all elements
+	// initialized to 5 will be passed to "foo".
+	
 	
 	// Constructor (3)
 	MathLbr::vector<double> a22(5); // Initializes the internal std::vector with 5 default values. The size of the container is 5.
