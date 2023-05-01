@@ -92,11 +92,16 @@ int main() {
 	// Constructor (3)
 	MathLbr::vector<double> a22(5); // Initializes the internal std::vector with 5 default values. The size of the container is 5.
 
+
 	// Constructor (4)
-	std::vector<int> values{ 1,2,3,4,5,6 };
-	MathLbr::vector<int, 7> a3(values.begin(), values.end()); // Initializes a3 with the contents of values. Last element is default-initialized.
-	//MathLbr::vector<int, 3> a33(values.begin(), values.end()); // Produces an assert: 3 is smaller than 6!
-	MathLbr::vector<int> a333(values.begin(), values.end()); // Initializes the vector with the contents of value, std::vector is used as internal container.
+	std::vector<int> vector{ 1, 2, 3, 4, 5 }; // OtherSize = 5
+	MathLbr::vector<int> v(vector.begin(), vector.end()); // ok, v.size() = 5, elements = 1,2,3,4,5
+	MathLbr::vector<int, 7> v1(vector.begin(), vector.end()); // ok, v1.size() = 7, elements = 1,2,3,4,5,uninitialized,uninitialized
+	MathLbr::vector<int, 3> v2(vector.begin(), vector.end()); // assert fail: CurrentSize < OtherSize
+
+	std::vector<double> vector2{ {1., 2., 3.} }; // note: vector of doubles
+	MathLbr::vector<int> v3(vector2.begin(), vector2.end()); // narrowing conversion allowed only if ALLOW_IMPLICIT_CONVERSIONS defined,
+	// otherwise this results in a compile time error
 
 	// Constructor (5)
 	// Initializes a vector of complex numbers, the underlying container used is std::array.
