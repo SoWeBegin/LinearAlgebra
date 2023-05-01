@@ -18,10 +18,12 @@
    constexpr explicit(not concepts::allow_implicit_conversions::value) vector(const T2(&arr)[Sz])
    ```
 6. ```cpp
-   constexpr explicit vector(complex_internal_value_type<T> lower, complex_internal_value_type<T> higher, size_type count = 1);
+   template<concepts::underlying_vector_type T2>
+   explicit(not concepts::allow_implicit_conversions::value) vector(T2 lower, T2 higher)   
    ```
 7. ```cpp
-   explicit vector(value_type lower, value_type higher, size_type count = 1);
+   template<concepts::underlying_vector_type T2>
+   explicit(not concepts::allow_implicit_conversions::value) vector(T2 lower, T2 higher, size_type count)  
    ```
 8. ```cpp
    template<typename T2, size_type Size2>
@@ -56,10 +58,13 @@ If the size of the passed array is smaller than the container's size, and if the
 The default behavior of this constructor is that T2, the type of the arguments passed, must not have any implicit narrowing conversion from the passed argument's type T2 to the container's type T (std::convertible_to<T2, T> must be possible). Default behavior also means that this constructor is marked explicit.
 If ALLOW_IMPLICIT_CONVERSIONS is defined, all implicit conversions are allowed from T2 to T (where T is the class template type), and this constructor is not marked explicit.
 *Note*: There is a deduction guide for this constructor. See "deduction guides".
-6) Constructs the vector with random real and imaginary values, where the values are in the range [lower, higher]. This constructor effectively exists only if `std::complex` is used as the type of the elements.<br>
-   *Note*: The third parameter `count` is needed when initializing a vector whose underlying container is `std::vector`. This parameter is used to initialize the `std::vector` with `count` default values of the used type `T`: if no argument is passed, the default size of `std::vector` will be 1. If a `std::array` is used as the underlying container, this parameter is effectively ignored.
-7) Same as 6), but this constructor effectively exists only if `std::complex` was not used as the type of the elements.
-8) Constructs the vector with the contents of `other`. The type of the elements of `other` must be convertible to the type of the current vector `T`.<br>
+6) Constructs the vector with random real and imaginary values, where the values are in the range [lower, higher]. This constructor effectively exists only if the underlying container used is std::array, that is, if an explicit size was passed to the class MathLbr::vector during initialization.<br>
+   The default behavior is that there must be no implicit narrowing conversions from T2 to T, where T is the type passed to MathLbr::vector, and the constructor is marked explicit. If ALLOW_IMPLICIT_CONVERSIONS is defined, then this constructor is not explicit, and all implicit conversions from T2 to T are allowed.
+   For the underlying type std::complex, both real and imaginary parts will have random values in the range [lower, higher].
+   *Important Note*: depending on the type of the passed argument, internally a real or integral distribution will be used. This means that even if MathLbr::vector has a real type, such as MathLbr::vector<double>, and we pass an int range, such as `MathLbr::vector<double, 3> v(1, 9);`, the distribution will be integral and thus the random values will result in `ints` (which are implicitly converted to `double` in this example). See the example code for this constructor!
+7) Same as 6), but this constructor effectively exists only if `std::vector` is used as the underlying type, that is, no explicit size was passed to MathLbr::vector during initialization.
+The only difference is that a third parameter must explicitly be passed, which is the size of the MathLbr::vector.
+9) Constructs the vector with the contents of `other`. The type of the elements of `other` must be convertible to the type of the current vector `T`.<br>
    For vectors whose underlying container is `std::array`, an assert is performed to ensure that the size of `other` is smaller (or equal) to the size of the current vector. For vectors whose underlying container is `std::vector`, the current instance gets the same size as `other`. <br>
    If the underlying container is `std::array` and `other.size() < size()`, the remaining elements of the current instance are value-initialized such as `T{}`.
    Asserts might be disabled, see <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.
@@ -116,10 +121,15 @@ int main() {
         MathLbr::vector<int, 3> v4{ {1,2,3,4} }; // Error: The size passed is greater than 3
 
 	// Constructor (6)
-	// Initializes the vector of complex numbers with random real and imaginary parts in the range [2, 9].
-	// Uses std::vector as underlying container. The vector's size is 6 (the last parameter).
-	MathLbr::vector<std::complex<int>> a5(2, 9, 6);
-	MathLbr::vector<std::complex<double>, 2> a55(2, 9); // Same as above, but uses std::array. The last parameter is ignored.
+	// NOTE: even if the internal container type is double, this initialization will use an integral distribution to generate the random values. Therefore, an output could, for example, be: 3 5 9.
+	// This only can happen if you define ALLOW_IMPLICIT_CONVERSIONS. Otherwise, the default behavior is that the following line won't compile because an implicit conversion (from int to double) is happening!
+	MathLbr::vector<double, 3> random = { 1, 9 }; // Only works if ALLOW_IMPLICIT_CONVERSIONS is defined, because the constructor is not explicit in that case
+	// generates 3 random int values between 1 and 9
+	MathLbr::vector<int, 3> random(1.3, 3.4); // Only works if ALLOW_IMPLICIT_CONVERSIONS is defined. Generates 3 random int values between
+	// 1 and 3
+	MathLbr::vector<std::complex<double>, 3> random3(3.4, 9.5); // Generates 3 random complex numbers. Each imaginary and real part has a random value
+	// that is between 3.4 and 9.5
+
 
 	// Constructor (7): Same as (6), but with a type that is not std::complex.
 
