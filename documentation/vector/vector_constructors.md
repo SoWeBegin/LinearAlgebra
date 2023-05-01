@@ -4,12 +4,10 @@
    ```
 2. ```cpp
    template<concepts::underlying_vector_type T2>
-   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(T2 value)
-   requires (concepts::dynamic_extent_disabled<Size, dynamic_extent>
-   and concepts::convertible_to_or_not_narrowing_conversion<T2, value_type>)  
+   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(T2 value); 
    ```
 3. ```cpp
-   constexpr explicit vector(size_type count);
+   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(size_type count);
    ```
 4. ```cpp
    template<std::input_iterator InputIter>
@@ -46,11 +44,13 @@
 The default behavior is that there must exist an implicit conversion sequence from T2 to T, where T is the type explicitly passed to the class template. If no such implicit conversion exists (that is, std::convertible_to<T2, T> fails) then a compilation error is thrown.
 By default behavior, this constructor is implicitly marked explicit as well.
 If ALLOW_IMPLICIT_CONVERSIONS is defined, then all narrowing conversions from T2 to T are disallowed, and this constructor is not marked explicit.
-4) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
-5) Constructs the vector with the contents of the range [first, last].
-   <br> The type of the range must be convertible to the container's type (for example, a range of `std::complex` types cannot be used to initialize a vector of `int`s).
-   <br>*Note:* For a non-dynamically allocated vector (that is, a vector created with an explicitly passed template size), an assert is performed to ensure that the container's   size is greater or equal than the size of the passed range (Size >= range size). Asserts might be disabled, refer to <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.
-   If the total values passed are smaller than the container's size, and the underlying container is `std::array`, then the remaining elements are value-initialized such as `T{}`.
+3) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
+This constructor is explicit by default. If ALLOW_IMPLICIT_CONVERSIONS is defined then this constructor is not marked explicit.
+4) Constructs the vector with the contents of the range [first, last].
+   The default behavior is that there must be an implicit sequence from the internal type of the passed containers to T (where T is the type explicitly passed to the class template), and the constructor is marked explicit. If ALLOW_IMPLICIT_CONVERSIONS is defined then all narrowing conversions from the internal type of the passed containers to T are disallowed, and this constructor is not marked explicit. 
+   For a MathLbr::vector whose size argument was passed to the class explicitly (such as MathLbr::vector<T, 3>):
+   - an assert is performed to ensure that the size of the passed container ("OtherSize") is smaller than the size explicitly provided to MathLbr::vector, and 
+   - If the size explicitly provided to MathLbr::vector is greater than "OtherSize" (that is, Size > OtherSize) then all remaining elements of MathLbr::vector are left uninitialized.
 5) Constructs the vector with the contents of the passed array, similar to using a `std::initializer_list`. A pair of braces is necessary for this overload to be chosen, such as `MathLbr::vector<int> myVector{{1, 2, 3}}`. If no template size is passed, that is, if the underlying container is `std::array`, passing more values than what the vector can store (that is, total values passed > vector's actual Size) will result in a compile error.<br>
 If the size of the passed array is smaller than the container's size, and if the underlying container used is `std::array`, the remaining elements are value-initialized such as `T{}`.
 6) Constructs the vector with random real and imaginary values, where the values are in the range [lower, higher]. This constructor effectively exists only if `std::complex` is used as the type of the elements.<br>
