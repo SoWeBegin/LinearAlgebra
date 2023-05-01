@@ -14,8 +14,8 @@
    constexpr vector(InputIter first, InputIter last);
    ```
 5. ```cpp
-   template<size_type Sz>
-   constexpr explicit vector(const value_type(&arr)[Sz]);
+   template<size_type Sz, concepts::underlying_vector_type T2>
+   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(const T2(&arr)[Sz])
    ```
 6. ```cpp
    constexpr explicit vector(complex_internal_value_type<T> lower, complex_internal_value_type<T> higher, size_type count = 1);
@@ -41,18 +41,21 @@
   
 1) **Default constructor**. Constructs an empty vector, as in by using `= default`.
 2) Contructs the container with each element initialized to `value`. This constructor effectively exists only if the underlying container is `std::array`, that is, if a size was passed as a second template parameter (such as `MathLbr::vector<int, 4>`).
-The default behavior is that there must exist an implicit conversion sequence from T2 to T, where T is the type explicitly passed to the class template. If no such implicit conversion exists (that is, std::convertible_to<T2, T> fails) then a compilation error is thrown.
+The default behavior is that there must not be implicit narrowing conversions from T2 to T, where T is the type explicitly passed to the class template, otherwise a compilation error occurs.
 By default behavior, this constructor is implicitly marked explicit as well.
-If ALLOW_IMPLICIT_CONVERSIONS is defined, then all narrowing conversions from T2 to T are disallowed, and this constructor is not marked explicit.
+If ALLOW_IMPLICIT_CONVERSIONS is defined, then all implicit conversions conversions from T2 to T are allowed, narrowing conversions included, and this constructor is not marked explicit.
 3) Constructs the container with `count` default-inserted instances of T (internally, calling `std::vector<T> myVector(count)`. This constructor effectively exists only if the underlying container is `std::vector`, that is, if no size was passed as a second template parameter (such as `MathLbr::vector<double> myVector`).
 This constructor is explicit by default. If ALLOW_IMPLICIT_CONVERSIONS is defined then this constructor is not marked explicit.
 4) Constructs the vector with the contents of the range [first, last].
-   The default behavior is that there must be an implicit sequence from the internal type of the passed containers to T (where T is the type explicitly passed to the class template), and the constructor is marked explicit. If ALLOW_IMPLICIT_CONVERSIONS is defined then all narrowing conversions from the internal type of the passed containers to T are disallowed, and this constructor is not marked explicit. 
+   The default behavior is that there must not be any implicit narrowing conversions from the internal type of the passed containers to T (where T is the type explicitly passed to the class template), and the constructor is marked explicit. If ALLOW_IMPLICIT_CONVERSIONS is defined then all implicit conversions, narrowing conversions included, are allowed from the internal type of the passed containers to T, and this constructor is not marked explicit. 
    For a MathLbr::vector whose size argument was passed to the class explicitly (such as MathLbr::vector<T, 3>):
    - an assert is performed to ensure that the size of the passed container ("OtherSize") is smaller than the size explicitly provided to MathLbr::vector, and 
    - If the size explicitly provided to MathLbr::vector is greater than "OtherSize" (that is, Size > OtherSize) then all remaining elements of MathLbr::vector are left uninitialized.
 5) Constructs the vector with the contents of the passed array, similar to using a `std::initializer_list`. A pair of braces is necessary for this overload to be chosen, such as `MathLbr::vector<int> myVector{{1, 2, 3}}`. If no template size is passed, that is, if the underlying container is `std::array`, passing more values than what the vector can store (that is, total values passed > vector's actual Size) will result in a compile error.<br>
 If the size of the passed array is smaller than the container's size, and if the underlying container used is `std::array`, the remaining elements are value-initialized such as `T{}`.
+The default behavior of this constructor is that T2, the type of the arguments passed, must not have any implicit narrowing conversion from the passed argument's type T2 to the container's type T (std::convertible_to<T2, T> must be possible). Default behavior also means that this constructor is marked explicit.
+If ALLOW_IMPLICIT_CONVERSIONS is defined, all implicit conversions are allowed from T2 to T (where T is the class template type), and this constructor is not marked explicit.
+*Note*: There is a deduction guide for this constructor. See "deduction guides".
 6) Constructs the vector with random real and imaginary values, where the values are in the range [lower, higher]. This constructor effectively exists only if `std::complex` is used as the type of the elements.<br>
    *Note*: The third parameter `count` is needed when initializing a vector whose underlying container is `std::vector`. This parameter is used to initialize the `std::vector` with `count` default values of the used type `T`: if no argument is passed, the default size of `std::vector` will be 1. If a `std::array` is used as the underlying container, this parameter is effectively ignored.
 7) Same as 6), but this constructor effectively exists only if `std::complex` was not used as the type of the elements.
@@ -107,6 +110,10 @@ int main() {
 	// Initializes a vector of complex numbers, the underlying container used is std::array.
 	MathLbr::vector<std::complex<double>, 3> a4{ { {1,3}, {2,4} } };
 	MathLbr::vector<short> a44{ { 2, 3, 4, 5, 6} }; // Initializes a vector of 5 shorts, the underlying container is std::vector.
+	MathLbr::vector<std::complex<int>> v{ { {3, 3}, {3, 3} } };
+	MathLbr::vector<int> v2{ {3.4, 3.4} }; // only works if ALLOW_IMPLICIT_CONVERSIONS is defined (otherwise, narrowing conversions are disallowed)
+	MathLbr::vector v3{ {3.4, 3.2, 2.3} }; // Deduction guide used, the vector internal type is deduced as double, size is 3
+        MathLbr::vector<int, 3> v4{ {1,2,3,4} }; // Error: The size passed is greater than 3
 
 	// Constructor (6)
 	// Initializes the vector of complex numbers with random real and imaginary parts in the range [2, 9].
