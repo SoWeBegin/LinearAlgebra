@@ -89,8 +89,8 @@ int main() {
 	// Constructor (2)
 	MathLbr::vector<int, 2> v1(5); // All the elements are initialized to 5. 
 
-	MathLbr::vector<int, 2> v2(5.5); // The default behavior is that 5.5 is implicitly converted to an int, and all elements are initialized to 5.
-	// If ALLOW_IMPLICIT_CONVERSIONS is defined, then this fails to compile, because narrowing conversions are disallowed.
+	MathLbr::vector<int, 2> v2(5.5); // The default behavior is that this line fails to compile, because narrowing conversions are disallowed.
+	// If ALLOW_IMPLICIT_CONVERSIONS is defined, then this will compile correctly: the double 5.5 will be implicitly converted to the int 5.
 
 	foo(5); // The default behavior disallows this since there constructor is marked explicit.
 	// If ALLOW_IMPLICIT_CONVERSIONS is defined, then this will compile, and a vector MathLbr::vector<int, 2> with all elements
@@ -123,7 +123,7 @@ int main() {
 	// Constructor (6)
 	// NOTE: even if the internal container type is double, this initialization will use an integral distribution to generate the random values. Therefore, an output could, for example, be: 3 5 9.
 	// This only can happen if you define ALLOW_IMPLICIT_CONVERSIONS. Otherwise, the default behavior is that the following line won't compile because an implicit conversion (from int to double) is happening!
-	MathLbr::vector<double, 3> random = { 1, 9 }; // Only works if ALLOW_IMPLICIT_CONVERSIONS is defined, because the constructor is not explicit in that case
+	MathLbr::vector<double, 3> random = { 1, 9 }; // Only works if ALLOW_IMPLICIT_CONVERSIONS is defined, because the constructor is not explicit in that case, and because narrowing conversions would be allowed.
 	// generates 3 random int values between 1 and 9
 	MathLbr::vector<int, 3> random(1.3, 3.4); // Only works if ALLOW_IMPLICIT_CONVERSIONS is defined. Generates 3 random int values between
 	// 1 and 3
