@@ -26,12 +26,13 @@
    explicit(not concepts::allow_implicit_conversions::value) vector(T2 lower, T2 higher, size_type count)  
    ```
 8. ```cpp
-   template<typename T2, size_type Size2>
-   constexpr vector(const vector<T2, Size2>& other);
+   template<concepts::underlying_vector_type T2, size_type Size2>
+   constexpr explicit(not concepts::allow_implicit_conversions::value) vector(const vector<T2, Size2>& other)
    ```
 9. ```cpp
-   template<typename T2, size_type Size2>
-   constexpr vector(vector<T2, Size2>&& other) noexcept (std::is_nothrow_move_constructible_v<T>)
+   template<concepts::underlying_vector_type T2, size_type Size2>
+   constexpr explicit(not concepts::allow_implicit_conversions::value)
+   vector(vector<T2, Size2>&& other) noexcept (std::is_nothrow_move_constructible_v<T2>)
    ```
 9. ```cpp
    constexpr vector(const vector& other) = default;
@@ -64,10 +65,14 @@ If ALLOW_IMPLICIT_CONVERSIONS is defined, all implicit conversions are allowed f
    *Important Note*: depending on the type of the passed argument, internally a real or integral distribution will be used. This means that even if MathLbr::vector has a real type, such as MathLbr::vector<double>, and we pass an int range, such as `MathLbr::vector<double, 3> v(1, 9);`, the distribution will be integral and thus the random values will result in `ints` (which are implicitly converted to `double` in this example). See the example code for this constructor!
 7) Same as 6), but this constructor effectively exists only if `std::vector` is used as the underlying type, that is, no explicit size was passed to MathLbr::vector during initialization.
 The only difference is that a third parameter must explicitly be passed, which is the size of the MathLbr::vector.
-9) Constructs the vector with the contents of `other`. The type of the elements of `other` must be convertible to the type of the current vector `T`.<br>
-   For vectors whose underlying container is `std::array`, an assert is performed to ensure that the size of `other` is smaller (or equal) to the size of the current vector. For vectors whose underlying container is `std::vector`, the current instance gets the same size as `other`. <br>
-   If the underlying container is `std::array` and `other.size() < size()`, the remaining elements of the current instance are value-initialized such as `T{}`.
-   Asserts might be disabled, see <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.
+8) Constructs the vector with the contents of `other`. <br>
+   For vectors whose underlying container is `std::array`, an assert or static_assert (depending on whether both Sizes are known at compile time) is performed to ensure that the size of `other` is smaller (or equal) to the size of the current vector. For vectors whose underlying container is `std::vector`, the current instance gets the same size as `other`. <br>
+   If the underlying container is `std::array` and `other.size() < size()`, the remaining elements of the current instance are left uninitialized.
+   Runtime asserts might be disabled, see <a href="https://en.cppreference.com/w/cpp/error/assert">assert</a>.<br>
+The default behavior of this constructor is as follows:
+	- There must not be an implicit narrowing conversions from the other vector's type T2 to the current vector's type T, otherwise compilation fails.
+	- This constructor is explicit.
+If ALLOW_IMPLICIT_CONVERSION is defined, then any implicit conversion from T2 to T is allowed and this constructor is not marked explicit.
 9) Same as 9), but instead uses `std::move`. This constructor is currently useless, but it might become relevant if new types will be accepted in the future.
 10) Copy constructor, move constructor, copy assignment and move assignment operators are all defaulted. These will be called *only* if the size and underlying type match.
 
