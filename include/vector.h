@@ -68,6 +68,12 @@ namespace MathLbr
 				other.begin(), decltype(std::declval<T>() * std::declval<T2>()){});
 		}
 
+		template<concepts::underlying_vector_type T, concepts::underlying_vector_type T2, std::size_t Size1>
+		constexpr auto cross_product(vector<T, Size1> lhs, const vector<T2, Size1>& rhs)
+		{
+			return lhs.cross_product(rhs);
+		}
+
 		template<concepts::underlying_vector_type T, concepts::underlying_vector_type T2>
 		constexpr auto complex_inner_product(const std::complex<T>& lhs, const std::complex<T2>& rhs)
 		-> decltype(std::declval<T>() * std::declval<T2>() + std::declval<T>() * std::declval<T2>()) 
@@ -218,12 +224,6 @@ namespace MathLbr
 		constexpr auto normalize(vector<T, Size> other)
 		{
 			return other.normalize();
-		}
-
-		template<concepts::underlying_vector_type T, concepts::underlying_vector_type T2, std::size_t Size1>
-		constexpr auto cross_product(vector<T, Size1> lhs, const vector<T2, Size1>& rhs)
-		{
-			return lhs.cross_product(rhs);
 		}
 	}
 
