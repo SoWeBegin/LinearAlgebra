@@ -28,7 +28,7 @@
 
 namespace MathLbr 
 {
-	template<concepts::underlying_vector_type T, std::size_t Size = dynamic_extent>
+	template<concepts::underlying_vector_type T, std::size_t Size = dynamic_extent, typename Allocator = std::allocator<T>>
 	class vector;
 
 	namespace Vector 
@@ -235,24 +235,25 @@ namespace MathLbr
 		but some are explicitly disabled because they make little sense with complex entries.
 	*/
 
-	template<concepts::underlying_vector_type T, std::size_t Size>
+	template<concepts::underlying_vector_type T, std::size_t Size, typename Allocator>
 	class vector
 	{
 
 	private:
-		template<concepts::underlying_vector_type T2, std::size_t Size2>
+		template<concepts::underlying_vector_type T2, std::size_t Size2, typename Allocator2>
 		friend class vector;
 
 		std::conditional_t<concepts::dynamic_extent_enabled<Size, dynamic_extent>,
-			std::vector<T>, std::array<T, Size>> _vector;
+			std::vector<T, Allocator>, std::array<T, Size>> _vector;
 
 	public:
 		using size_type = std::size_t;
 		using value_type = T;
-		using pointer_type = T*;
-		using reference_type = T&;
-		using const_pointer_type = const T*;
-		using const_reference_type = const T&;
+		using allocator_type = Allocator;
+		using pointer = T*;
+		using reference = T&;
+		using const_pointer = const T*;
+		using const_reference = const T&;
 		using underlying_container = std::conditional_t<concepts::dynamic_extent_enabled<Size>,
 			std::vector<T>, std::array<T, Size>>;
 		template<typename _T>
@@ -1244,8 +1245,8 @@ namespace MathLbr
 	};
 
 	// Deduction guides
-	template<typename T, std::size_t Sz>
-	vector(const T(&)[Sz])->vector<T, Sz>;
+	template<typename T, std::size_t Sz, typename Alloc>
+	vector(const T(&)[Sz])->vector<T, Sz, Alloc>;
 
 	template<typename InputIt>
 	vector(InputIt, InputIt)->vector<typename std::iterator_traits<InputIt>::value_type>;

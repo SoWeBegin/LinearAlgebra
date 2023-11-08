@@ -44,6 +44,7 @@ namespace concepts
 
 	// The following attempt doesn't work due to corner cases such as aggregate initialization having precedente in some scenarios,
 	// see: https://discord.com/channels/331718482485837825/1170461462083420211
+	// example: https://godbolt.org/z/8PPdPb6bb
 	/*
 	template<typename From, typename To>
 	concept is_narrowing_conversion = not requires{ To{ std::declval<From>() }; };
