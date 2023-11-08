@@ -37,6 +37,18 @@ namespace concepts
 	struct allow_implicit_conversions : std::false_type {};
 #endif
 
+	template <typename T>
+	using Arr = T[1];
+	template<typename From, typename To>
+	concept is_narrowing_conversion = not requires { Arr<To>{ std::declval<From>() }; };
+
+	// The following attempt doesn't work due to corner cases such as aggregate initialization having precedente in some scenarios,
+	// see: https://discord.com/channels/331718482485837825/1170461462083420211
+	/*
+	template<typename From, typename To>
+	concept is_narrowing_conversion = not requires{ To{ std::declval<From>() }; };
+	*/
+
 	template<typename T> 
 	struct is_complex : std::false_type {};
 
@@ -54,9 +66,6 @@ namespace concepts
 
 	template<typename... Ts>
 	concept is_all_complex = std::conjunction_v<is_complex<Ts>...>;
-
-	template<typename From, typename To>
-	concept is_narrowing_conversion = not requires{ To{ std::declval<From>() }; };
 
 	template<typename T>
 	concept underlying_vector_type =
